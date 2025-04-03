@@ -83,6 +83,122 @@ def delete_acc(account_id):
 def delete_acc_range(min,max):
     for i in range(min,max):
         delete_acc(i)
+        
+'''
+*******************************************************************************
+Inputs: dictionary listing data of form:
+{Categories} (a dictionary of strings via the frontend)
+{CreateTime} (string in format: 2025-03-25T13:00:00Z)
+{Description} (string)
+{Images} (a nested dictionary of strings, with a key associated to each image. That way, if 
+the image is the default name, each image will still be unique)
+
+**listing ID created dynamically**
+
+{Price} (Integer)
+{SellStatus} (The Integer 0 or 1)
+{Title} (String)
+{UserID} (Integer)
+'''
+def add_listing(listing_data):
+    # notice we read the number of listings here and increment by 1
+    listings = ref.child('Listing').get()
+    new_key = str(len(listings)) if listings else "1"
+    listing_data['ListingID'] = new_key
+    ref.child('Listing').child(new_key).set(listing_data)
+
+    
+# generates listings for testing purposes
+def generate_random_listing():
+    # sample data lists
+    categories = {
+        "Price": ["Under $10", "$10 - $50", "$50 - $100", "$100 - $500", "Above $500"],
+        "Kitchen": ["Cookware", "Appliances", "Utensils", "Storage", "Dinnerware"],
+        "Furniture": ["Chairs", "Tables", "Beds", "Desks", "Storage"],
+        "Electronics": ["Laptops", "Phones", "Tablets", "TVs", "Audio"],
+        "Clothing": ["Shirts", "Tops", "Bottoms", "Dresses", "Accessories"],
+        "Miscellaneous": ["Books", "Toys", "Art", "Crafts", "Other"]
+    }
+    # Strings in format: "Still in good condition, barely used."
+    descriptions = [
+        "Still in good condition, barely used.",
+        "Like new, only used a couple of times.",
+        "Some wear and tear, but works perfectly.",
+        "Brand new, never opened.",
+        "Moderate use, but all functions are intact.",
+        "Well-maintained, only minor scratches.",
+        "Used frequently, but no major damage.",
+        "Rarely used, kept in storage most of the time.",
+        "Has a few dents, but still works as expected.",
+        "Pristine condition, includes original packaging."
+    ]
+    # Dictionary of strings with integer keys
+    images = {
+        1: "image1.png",
+        2: "image2.png",
+        3: "myDellLaptop.jpg",
+        4: "nike_air_forces.jpeg",
+        5: "image1.png",
+        6: "myOldSweater.heic",
+        7: "image3.png"
+    }
+    # Strings; ex: "Dell Laptop"
+    titles = [
+        "Dell Laptop",
+        "iPhone 12",
+        "Sony Headphones",
+        "Gaming Chair",
+        "Canon DSLR Camera",
+        "Vintage Leather Jacket",
+        "Wooden Dining Table",
+        "Mountain Bike",
+        "Electric Guitar",
+        "Cookware Set"
+    ]
+    # Ints
+    UserIDs = [123, 245, 387, 412, 569, 678, 734, 802, 915, 999]
+    
+    category = random.choice(list(categories.values))
+    creation_time = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    description = random.choice(descriptions)
+    image = random.choice(images.values)
+    # random price: xx.xx
+    price = f"{random.randint(0,999)}.{random.randint(10,99)}"
+    sell_status = random.randint(0,1)
+    title = random.choice(titles)
+    user_ID = random.choice(UserIDs)
+
+    return {
+        'Category': category,
+        'CreateTime': creation_time,
+        'Description': description,
+        'Images': image,
+        'Price': price,
+        'SellStatus': sell_status,
+        'Title': title,
+        'UserID': user_ID
+    }
+
+def print_all_listings():
+    listings = ref.child('Listing').get()
+    if not listings:
+        print("no listings found")
+        return
+    for idx, listing in enumerate(listings, start=0):
+        if listing is not None:
+            print("listing key: " + str(idx))
+            for field, value in listing.items():
+                print("  " + field + ": " + str(value))
+            print("-" * 20)
+
+
+def load_dummy_listings(num):
+    for i in range(num):
+        acc = generate_random_listing()
+        add_listing(acc)
+
+load_dummy_listings(20)
+
 
 load_dummy_accounts(200)
 #delete_acc_range(1,12)
