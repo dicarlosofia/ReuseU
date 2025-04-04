@@ -113,7 +113,7 @@ def add_listing(listing_data):
     ref.child('Listing').child(new_key).set(listing_data)
 
 '''
-A function that deletes a listing from the listings table.
+A function that deletes a listing from the Listing table.
 
 credit: users Peter Haddad and Kevin on Stack Overflow,
 https://stackoverflow.com/questions/59016092/how-to-delete-from-firebase-
@@ -249,7 +249,7 @@ def load_dummy_listings(num):
 
 load_dummy_listings(20)
 '''
-*********************************Listings**************************************
+**********************************Reviews**************************************
 Inputs: dictionary listing data of form:
 {ListingID}
 {Rating}
@@ -258,19 +258,54 @@ Inputs: dictionary listing data of form:
 {ReviewerID}
 {SellerID}
 '''
-# Macro message that identifies absent listing
-review_absent_msg = '''
-Specified review does not exist.
-'''
 
-def add_review(listing_id):
-    # notice we read the number of reviews here and increment by 1
-    reviews = ref.child('Review').get()
-    new_key = str(len(reviews)) if reviews else "1"
-    review_data['ReviewID'] = new_key
-    ref.child('Review').child(new_key).set(review_data)
+'''
+A function that passes in a dictionary in the block comment formatted above.
+
+This function is slightly different than the rest because reviews do not have
+their own unique ID's, they actually are referenced to listings.
+'''
+def add_review(review_data):
+    listing_id = review_data.get('ListingID')
+    
+    if not listing_id:
+          raise ValueError("review_data must include a 'ListingID' field.")
+
+    # Check if the listing exists
+    listings = ref.child('Listing').get()
+    if not listings or listing_id not in listings:
+        raise ValueError(f"Post with ID {listing_id} does not exist.")
+
+    # Check if a review already exists for this post
+    reviews = ref.child('reviews').get()
+    if reviews and listing_id in reviews:
+        raise ValueError(f"Review for post {listing_id} already exists.")
+
+    # Save the review under the reviews node using ListingID as key
+    ref.child('reviews').child(listing_id).set(review_data)
+    print(f"Review successfully added for post {listing_id}.")
     
 
+'''
+A function that deletes a review from the Review table.
+
+credit: users Peter Haddad and Kevin on Stack Overflow,
+https://stackoverflow.com/questions/59016092/how-to-delete-from-firebase-
+realtime-database-use-python
+'''
+def del_review(review_id):
+    # Connect to the database
+    reviews = ref.child('Review').get()
+
+    # Make sure that listing exists, if so, delete it.
+    for key,val in reviews.items():
+        if (listing_id == val['listing']):
+            delete_listing_ref = ref.child(key)
+            delete_listing_ref.set(None)
+            delete_listing_ref.delete()
+    # If not, reflect that.
+        else:
+            print(listing_absent_msg)
 
 '''*************************************************************************'''
 
