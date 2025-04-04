@@ -85,13 +85,13 @@ def delete_acc_range(min,max):
         delete_acc(i)
         
 '''
-*******************************************************************************
+*********************************Listings**************************************
 Inputs: dictionary listing data of form:
 {Categories} (a dictionary of strings via the frontend)
 {CreateTime} (string in format: 2025-03-25T13:00:00Z)
 {Description} (string)
-{Images} (a nested dictionary of strings, with a key associated to each image. That way, if 
-the image is the default name, each image will still be unique)
+{Images} (a nested dictionary of strings, with a key associated to each image. 
+That way, if the image is the default name, each image will still be unique)
 
 **listing ID created dynamically**
 
@@ -100,6 +100,11 @@ the image is the default name, each image will still be unique)
 {Title} (String)
 {UserID} (Integer)
 '''
+# Macro message that identifies absent listing
+listing_absent_msg = '''
+Specified listing does not exist.
+'''
+
 def add_listing(listing_data):
     # notice we read the number of listings here and increment by 1
     listings = ref.child('Listing').get()
@@ -107,17 +112,62 @@ def add_listing(listing_data):
     listing_data['ListingID'] = new_key
     ref.child('Listing').child(new_key).set(listing_data)
 
+'''
+A function that deletes a listing from the listings table.
+
+credit: users Peter Haddad and Kevin on Stack Overflow,
+https://stackoverflow.com/questions/59016092/how-to-delete-from-firebase-
+realtime-database-use-python
+'''
+def del_listing(listing_id):
+    # Connect to the database
+    listings = ref.child('Listing').get()
+
+    # Make sure that listing exists, if so, delete it.
+    for key,val in listings.items():
+        if (listing_id == val['listing']):
+            delete_listing_ref = ref.child(key)
+            delete_listing_ref.set(None)
+            delete_listing_ref.delete()
+    # If not, reflect that.
+        else:
+            print(listing_absent_msg)
+
     
 # generates listings for testing purposes
 def generate_random_listing():
     # sample data lists
     categories = {
-        "Price": ["Under $10", "$10 - $50", "$50 - $100", "$100 - $500", "Above $500"],
-        "Kitchen": ["Cookware", "Appliances", "Utensils", "Storage", "Dinnerware"],
-        "Furniture": ["Chairs", "Tables", "Beds", "Desks", "Storage"],
-        "Electronics": ["Laptops", "Phones", "Tablets", "TVs", "Audio"],
-        "Clothing": ["Shirts", "Tops", "Bottoms", "Dresses", "Accessories"],
-        "Miscellaneous": ["Books", "Toys", "Art", "Crafts", "Other"]
+        "Price": ["Under $10", 
+                  "$10 - $50", 
+                  "$50 - $100", 
+                  "$100 - $500", 
+                  "Above $500"],
+        "Kitchen": ["Cookware", 
+                    "Appliances", 
+                    "Utensils", 
+                    "Storage", 
+                    "Dinnerware"],
+        "Furniture": ["Chairs", 
+                      "Tables", 
+                      "Beds", 
+                      "Desks", 
+                      "Storage"],
+        "Electronics": ["Laptops", 
+                        "Phones", 
+                        "Tablets", 
+                        "TVs", 
+                        "Audio"],
+        "Clothing": ["Shirts", 
+                     "Tops", 
+                     "Bottoms", 
+                     "Dresses", 
+                     "Accessories"],
+        "Miscellaneous": ["Books", 
+                          "Toys", 
+                          "Art",
+                          "Crafts", 
+                          "Other"]
     }
     # Strings in format: "Still in good condition, barely used."
     descriptions = [
@@ -162,7 +212,7 @@ def generate_random_listing():
     creation_time = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     description = random.choice(descriptions)
     image = random.choice(images.values)
-    # random price: xx.xx
+    # random price: xxx.xx
     price = f"{random.randint(0,999)}.{random.randint(10,99)}"
     sell_status = random.randint(0,1)
     title = random.choice(titles)
@@ -198,6 +248,31 @@ def load_dummy_listings(num):
         add_listing(acc)
 
 load_dummy_listings(20)
+'''
+*********************************Listings**************************************
+Inputs: dictionary listing data of form:
+{ListingID}
+{Rating}
+{Review}
+{ReviewDate}
+{ReviewerID}
+{SellerID}
+'''
+# Macro message that identifies absent listing
+review_absent_msg = '''
+Specified review does not exist.
+'''
+
+def add_review(listing_id):
+    # notice we read the number of reviews here and increment by 1
+    reviews = ref.child('Review').get()
+    new_key = str(len(reviews)) if reviews else "1"
+    review_data['ReviewID'] = new_key
+    ref.child('Review').child(new_key).set(review_data)
+    
+
+
+'''*************************************************************************'''
 
 
 load_dummy_accounts(200)
