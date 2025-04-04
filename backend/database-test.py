@@ -32,6 +32,60 @@ def add_account(account_data):
     account_data['UserID'] = new_key
     ref.child('Account').child(new_key).set(account_data)
 
+#Inputs: dictionary account data of form:
+# {BuyerID': buyer_id,
+#'DateTransaction': date_transaction,
+#'ListingID': listing_id,
+#'Price': price,
+#'SellerID': seller_id}
+def add_transaction(transaction_data):
+    # notice we read the number of accounts here and increment by 1
+    new_key = transaction_data['ListingID']
+    ref.child('Transaction').child(new_key).set(transaction_data)
+
+def delete_transaction(listing_id):
+    ref.child('Transaction').child(str(listing_id)).delete()
+
+
+#Inputs: dictionary account data of form:
+# {LastTime': last_time,
+#'MessageContent': message_content,
+#'UserID': user_id,
+#'ListingID': listing_id}
+def add_message(message_data):
+    # notice we read the number of accounts here and increment by 1
+    messages = ref.child('Message').get()
+    new_key = str(len(messages)) if messages else "1"
+    message_data['MessageID'] = new_key
+    listing_id_temp = message_data['ListingID']
+    message_data.pop("ListingID")
+    ref.child('Message').child(new_key).set(message_data)
+
+    target_chat = None
+    chat_exists = False
+    chats = ref.child('Chat').get()
+    for chat in chats:
+        for field, value in chat.items():
+            if field == 'ListingID':
+                if int(value) == listing_id_temp:
+                    target_chat = chat
+                    chat_exists = True
+
+    if chat_exists:
+        target_chat["Messages"] = target_chat["Messages"].append(message_data)
+        ref.child('Chat').child(new_key).set(target_chat)
+    else:
+        new_key = listing_id_temp
+        new_chat = {}
+        new_chat["ListingID"] = listing_id_temp
+        new_chat["Messages"] = [message_data]
+        ref.child('Chat').child(new_key).set(new_chat)
+
+
+def delete_message(message_id):
+    pass
+    #todo
+
 
 # generates accs for testing purposes
 def generate_random_account():
