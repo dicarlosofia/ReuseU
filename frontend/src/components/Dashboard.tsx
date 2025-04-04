@@ -1,26 +1,31 @@
+import { useRouter } from 'next/router';
 import { MagnifyingGlassIcon, UserCircleIcon, Cog8ToothIcon, BuildingStorefrontIcon } from "@heroicons/react/16/solid";
 
-
-
 export default function Dashboard() {
+    const router = useRouter();
+
     const handleReuseClick = () => {
-
+        router.push('/');
     }
+
     const handleMakeAListingClick = () => {
-
+        router.push('/create');
     }
+
     const handleUserCircleClick = () => {
 
     }
+
     const handleCogClick = () => {
 
     }
+
     return (
         <div className="flex items-center fixed top-0 left-0 w-full h-1/16 bg-[#5E8D66] z-50">
             <div className="pl-5 h-full flex items-center">
                 <div 
                 className="cursor-pointer outline-solid rounded-lg h-3/4 w-full pt-[10px] bg-[#3E4F44]"
-                onClick = {handleReuseClick} >ReuseU</div>
+                onClick={handleReuseClick}>ReuseU</div>
             </div>
             <div className="relative w-3/4 pl-5 flex-grow">
                 <input 
@@ -47,5 +52,5 @@ export default function Dashboard() {
             </div>
         </div>
     );
-  }
+}
   
