@@ -154,10 +154,6 @@ That way, if the image is the default name, each image will still be unique)
 {Title} (String)
 {UserID} (Integer)
 '''
-# Macro message that identifies absent listing
-listing_absent_msg = '''
-Specified listing does not exist.
-'''
 
 def add_listing(listing_data):
     # notice we read the number of listings here and increment by 1
@@ -179,13 +175,13 @@ def del_listing(listing_id):
 
     # Make sure that listing exists, if so, delete it.
     for key,val in listings.items():
-        if (listing_id == val['listing']):
+        if (listing_id == val['ListingID']):
             delete_listing_ref = ref.child(key)
             delete_listing_ref.set(None)
             delete_listing_ref.delete()
     # If not, reflect that.
         else:
-            print(listing_absent_msg)
+            raise ValueError(f"Post with ID {listing_id} does not exist.")
 
     
 # generates listings for testing purposes
@@ -262,10 +258,13 @@ def generate_random_listing():
     # Ints
     UserIDs = [123, 245, 387, 412, 569, 678, 734, 802, 915, 999]
     
-    category = random.choice(list(categories.values))
+    # Pick a random category first, then a subcategory within it.
+    category = random.choice(list(categories.keys()))
+    rand_sub_category = random.choice(categories[category])
+    
     creation_time = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     description = random.choice(descriptions)
-    image = random.choice(images.values)
+    image = random.choice(images.values())
     # random price: xxx.xx
     price = f"{random.randint(0,999)}.{random.randint(10,99)}"
     sell_status = random.randint(0,1)
@@ -273,7 +272,7 @@ def generate_random_listing():
     user_ID = random.choice(UserIDs)
 
     return {
-        'Category': category,
+        'Category': rand_sub_category,
         'CreateTime': creation_time,
         'Description': description,
         'Images': image,
@@ -342,24 +341,28 @@ def add_review(review_data):
 
 '''
 A function that deletes a review from the Review table.
+PARAM: listing_id | This parameter is the ListingID associated with specified
+review.
 
 credit: users Peter Haddad and Kevin on Stack Overflow,
 https://stackoverflow.com/questions/59016092/how-to-delete-from-firebase-
 realtime-database-use-python
 '''
-def del_review(review_id):
+def del_review(listing_id):
     # Connect to the database
     reviews = ref.child('Review').get()
 
-    # Make sure that listing exists, if so, delete it.
+    # Make sure that listing exists, if so, delete the review.
     for key,val in reviews.items():
-        if (listing_id == val['listing']):
-            delete_listing_ref = ref.child(key)
-            delete_listing_ref.set(None)
-            delete_listing_ref.delete()
+        if (listing_id == val['ListingID']):
+            delete_review_ref = ref.child(key)
+            delete_review_ref.set(None)
+            delete_review_ref.delete()
     # If not, reflect that.
         else:
-            print(listing_absent_msg)
+            raise ValueError(f"Post with ID {listing_id} does not exist.")
+        
+
 
 '''*************************************************************************'''
 
