@@ -258,13 +258,22 @@ def generate_random_listing():
     # Ints
     UserIDs = [123, 245, 387, 412, 569, 678, 734, 802, 915, 999]
     
-    # Pick a random category first, then a subcategory within it.
-    category = random.choice(list(categories.keys()))
-    rand_sub_category = random.choice(categories[category])
+    # Pick random category(s) first, then a subcategory within.
+    # Select a random number of categories (1-3) and get their subcategories
+    selected_categories = random.sample(list(categories.keys()), 
+                                        k=random.randint(1, 3))
+    # Properly retrieve a subcategory using each selected category
+    category_dict = {i+1: random.choice(categories[selected_categories[i]]) 
+                     for i in range(len(selected_categories))}
     
     creation_time = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     description = random.choice(descriptions)
-    image = random.choice(images.values())
+    
+    # Select a random number of images (1-3)
+    selected_images = random.sample(list(images.keys()), 
+                                    k=random.randint(1, 3))
+    image_dict = {key: images[key] for key in selected_images}
+    
     # random price: xxx.xx
     price = f"{random.randint(0,999)}.{random.randint(10,99)}"
     sell_status = random.randint(0,1)
@@ -272,10 +281,10 @@ def generate_random_listing():
     user_ID = random.choice(UserIDs)
 
     return {
-        'Category': rand_sub_category,
+        'Category': category_dict,
         'CreateTime': creation_time,
         'Description': description,
-        'Images': image,
+        'Images': image_dict,
         'Price': price,
         'SellStatus': sell_status,
         'Title': title,
@@ -300,11 +309,11 @@ def load_dummy_listings(num):
         acc = generate_random_listing()
         add_listing(acc)
 
-load_dummy_listings(20)
+load_dummy_listings(10)
 '''
 **********************************Reviews**************************************
 Inputs: dictionary listing data of form:
-{ListingID}
+{ListingID} 
 {Rating}
 {Review}
 {ReviewDate}
@@ -320,23 +329,28 @@ their own unique ID's, they actually are referenced to listings.
 '''
 def add_review(review_data):
     listing_id = review_data.get('ListingID')
-    
-    if not listing_id:
-          raise ValueError("review_data must include a 'ListingID' field.")
 
-    # Check if the listing exists
+    if not listing_id:
+        raise ValueError("review_data must include a 'ListingID' field.")
+
+    # Fetch listings
     listings = ref.child('Listing').get()
-    if not listings or listing_id not in listings:
-        raise ValueError(f"Post with ID {listing_id} does not exist.")
+    
+    # Make sure we're comparing strings
+    if not listings or str(listing_id) not in listings:
+        raise ValueError(f"Listing with ID {listing_id} does not exist.")
+
+    # Debug check if the listing value looks valid
+    print(f"Listing {listing_id} found. Proceeding to add review...")
 
     # Check if a review already exists for this post
-    reviews = ref.child('reviews').get()
-    if reviews and listing_id in reviews:
-        raise ValueError(f"Review for post {listing_id} already exists.")
+    reviews = ref.child('Review').get()
+    if reviews and str(listing_id) in reviews:
+        raise ValueError(f"Review for listing {listing_id} already exists.")
 
     # Save the review under the reviews node using ListingID as key
-    ref.child('reviews').child(listing_id).set(review_data)
-    print(f"Review successfully added for post {listing_id}.")
+    ref.child('Review').child(str(listing_id)).set(review_data)
+    print(f"Review successfully added for Listing {listing_id}.")
     
 
 '''
@@ -362,15 +376,115 @@ def del_review(listing_id):
         else:
             raise ValueError(f"Post with ID {listing_id} does not exist.")
         
+# generates listings for testing purposes
+def generate_random_review():
+    # sample data lists
+    # Strings in format ex: "Worked as respected." or "Had more dents than I
+    # was expecting"
+    reviews = [
+        "Worked as expected.",
+        "Had more dents than I was expecting.",
+        "Fantastic condition, better than described!",
+        "Not bad, but buying process took a while.",
+        "Missing a piece when I opened the box. Seller unresponsive.",
+        "Exactly what I needed—thanks!",
+        "Super helpful seller, great experience.",
+        "There were some scratches not shown in the photos.",
+        "Condition was okay, but definitely used more than stated.",
+        "Wouldn't buy from this user again.",
+        "Perfect item, fast delivery, no complaints.",
+        "Box was damaged but item inside was fine.",
+        "The description said 'barely used'—it was definitely *well* used.",
+        "Item works, but smells strongly of perfume for some reason.",
+        "Top-notch experience from start to finish. Highly recommend.",
+        "Looked like it survived a tornado, but hey, it works.",
+        "Smelled like someone microwaved regret. Still usable.",
+        "Seller ghosted me for a week, then delivered it wrapped in a sock.",
+        "Five stars for the audacity. Minus three for accuracy.",
+        "Honestly? Better than my ex. And he had warranty issues too."
+    ]
 
+    # Since reviews are tied to listings, we must choose a pre-existing listing
+    # If no listings exist, no need to generate any reviews
+    # if listings:
+    #     if isinstance(listings, list):
+    #                 existing_ids = [str(i) for i, 
+    #                                 item in enumerate(listings) if item is not None]
+    # rand_listing_id = random.choice(existing_ids) if existing_ids else None
+    listings = ref.child('Listing').get()
+    existing_ids = []
+
+    if isinstance(listings, dict):
+        existing_ids = list(listings.keys())
+    elif isinstance(listings, list):
+        # keys are just indices in the list that are not None
+        existing_ids = [str(i) for i, item in enumerate(listings)
+                        if item is not None]
+    else:
+        return None  # Unexpected format
+
+    if not existing_ids:
+        print("Skipping: No valid listing found.")
+        return None
+
+    rand_listing_id = str(random.choice(list(existing_ids)))
+    
+    rating = random.randint(0,5)
+    rand_review = random.choice(reviews)
+    review_time_date = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    reviewer_id = random.randint(10000,99999)
+    seller_id = random.randint(10000,99999)
+    
+    # Special case when the generated seller & reviewer IDs are the same.
+    if (seller_id != reviewer_id):
+        pass
+    else:
+        seller_id += 1
+
+    return {
+        'ListingID': rand_listing_id,
+        'Rating': rating,
+        'Review': rand_review,
+        'ReviewDate': review_time_date,
+        'ReviewerID': reviewer_id,
+        'SellerID': seller_id,
+    }
+
+def print_all_reviews():
+    reviews = ref.child('Review').get()
+    if not reviews:
+        print("no reviews found")
+        return
+    for idx, review in enumerate(reviews, start=0):
+        if review is not None:
+            print("Review key: " + str(idx))
+            for field, value in review.items():
+                print("  " + field + ": " + str(value))
+            print("-" * 20)
+
+
+def load_dummy_reviews(num):
+    for i in range(num):
+        rev = generate_random_review()
+        if rev:  # Only try to add if it returned valid data
+            try:
+                add_review(rev)
+                print("Added review.")
+            except ValueError as e:
+                print(f"Skipping review: {e}")
+        else:
+            print("Skipping: No valid listing found.")
+
+load_dummy_reviews(10)
+print_all_reviews()
 
 '''*************************************************************************'''
 
 
-load_dummy_accounts(200)
+load_dummy_accounts(10)
 #delete_acc_range(1,12)
-print_all_content()
-print_all_accounts()
+#print_all_content()
+#print_all_accounts()
 
 
 
