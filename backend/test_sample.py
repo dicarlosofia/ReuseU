@@ -1,6 +1,7 @@
-def inc(x):
-    return x + 1
+def incbytwo(x):
+    return x + 2
 
 
 def test_answer():
-    assert inc(4) == 5
+    assert incbytwo(3) == 5
+
