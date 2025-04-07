@@ -328,29 +328,58 @@ This function is slightly different than the rest because reviews do not have
 their own unique ID's, they actually are referenced to listings.
 '''
 def add_review(review_data):
-    listing_id = review_data.get('ListingID')
+    listing_id_temp = str(review_data['ListingID'])
+    # listing_id = review_data.get('ListingID')
 
-    if not listing_id:
-        raise ValueError("review_data must include a 'ListingID' field.")
+    # if not listing_id:
+    #     raise ValueError("review_data must include a 'ListingID' field.")
 
     # Fetch listings
     listings = ref.child('Listing').get()
+    contains_listing = False
+    
+    # Check if listing ID exists
+    for listing in listings:
+        if listing is not None:
+            for field, value in listing.items():
+                if field == 'ListingID':
+                    # print(f"Checking value lIDt: {listing_id_temp}, and val: {value}")
+                    if str(value) == listing_id_temp:
+                        contains_listing = True
+                        break
+            if contains_listing == True:
+                break
+                        
+        
+    # for idx, review in enumerate(reviews, start=0):
+    # if review is not None:
+    #     print("Review key: " + str(idx))
+    #     for field, value in review.items():
+    #         print("  " + field + ": " + str(value))
+    #     print("-" * 20)
+    
     
     # Make sure we're comparing strings
-    if not listings or str(listing_id) not in listings:
-        raise ValueError(f"Listing with ID {listing_id} does not exist.")
-
-    # Debug check if the listing value looks valid
-    print(f"Listing {listing_id} found. Proceeding to add review...")
+    if not listings:
+        raise ValueError(f"No listings exist yet!")
+    elif contains_listing == False:
+        raise ValueError(f"Listing with ID {listing_id_temp} does not exist.")
 
     # Check if a review already exists for this post
-    reviews = ref.child('Review').get()
-    if reviews and str(listing_id) in reviews:
-        raise ValueError(f"Review for listing {listing_id} already exists.")
+    review_vals = ref.child('Review').get().values()
+
+    # Check if listing ID exists
+    for review in review_vals:
+        if review is not None:
+            listing_val = list(review.values())[0]
+            # print(f"listing value: {listing_val}")
+            if str(listing_val) == listing_id_temp:
+                print(f"OOOOOOOOOOOOOOOOOReview for listing {listing_id_temp} already exists.OOOOOOOOOOOOOOOO")
+                return
 
     # Save the review under the reviews node using ListingID as key
-    ref.child('Review').child(str(listing_id)).set(review_data)
-    print(f"Review successfully added for Listing {listing_id}.")
+    ref.child('Review').child(str(listing_id_temp)).set(review_data)
+    print(f"Review successfully added for Listing {listing_id_temp}.")
     
 
 '''
@@ -476,7 +505,6 @@ def load_dummy_reviews(num):
             print("Skipping: No valid listing found.")
 
 load_dummy_reviews(10)
-print_all_reviews()
 
 '''*************************************************************************'''
 
