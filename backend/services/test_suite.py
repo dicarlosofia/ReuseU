@@ -6,6 +6,8 @@ from firebase_admin import credentials, db
 from account_service import add_account
 from listing_service import add_listing
 from review_service import add_review
+from transaction_service import add_transaction
+from message_service import add_message
 
 INTRO_MSG = '''
 Welcome to the ReuseU Backend Testing Suite!
