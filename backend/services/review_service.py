@@ -20,15 +20,13 @@ ref = get_db_root()
 '''
 **********************************Reviews**************************************
 Inputs: dictionary listing data of form:
-{ListingID} 
-{Rating}
-{Review}
-{ReviewDate}
-{ReviewerID}
-{SellerID}
-'''
+{ListingID} A **STRING**
+{Rating} An integer
+{Review} A String
+{ReviewDate} A String
+{ReviewerID} Integer
+{SellerID} Integer
 
-'''
 A function that passes in a dictionary in the block comment formatted above.
 
 This function is slightly different than the rest because reviews do not have
