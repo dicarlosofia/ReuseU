@@ -50,16 +50,7 @@ realtime-database-use-python
 '''
 def del_listing(listing_id):
     # Connect to the database
-    listings = ref.child('Listing').get()
+    ref.child('Listing').child(str(listing_id)).delete()
 
-    # Make sure that listing exists, if so, delete it.
-    for key,val in listings.items():
-        if (listing_id == val['ListingID']):
-            delete_listing_ref = ref.child(key)
-            delete_listing_ref.set(None)
-            delete_listing_ref.delete()
-    # If not, reflect that.
-        else:
-            raise ValueError(f"Post with ID {listing_id} does not exist.")
 
     

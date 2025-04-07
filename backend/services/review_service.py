@@ -98,16 +98,4 @@ realtime-database-use-python
 '''
 def del_review(listing_id):
     # Connect to the database
-    reviews = ref.child('Review').get()
-
-    # Make sure that listing exists, if so, delete the review.
-    for key,val in reviews.items():
-        if (listing_id == val['ListingID']):
-            delete_review_ref = ref.child(key)
-            delete_review_ref.set(None)
-            delete_review_ref.delete()
-    # If not, reflect that.
-        else:
-            pass
-            #raise ValueError(f"Post with ID {listing_id} does not exist.")
-        
+    ref.child('Review').child(str(listing_id)).delete()
