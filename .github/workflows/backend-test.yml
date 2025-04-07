@@ -1,7 +1,7 @@
 name: Backend test
 on:
   push:
-    branches: main
+    branches: cicd
 
 jobs:
   test:
