@@ -3,9 +3,9 @@ import random
 
 import firebase_admin
 from firebase_admin import credentials, db
-from account_service import add_account
-from listing_service import add_listing
-from review_service import add_review
+from account_service import add_account, delete_acc
+from listing_service import add_listing, del_listing
+from review_service import add_review, del_review
 from transaction_service import add_transaction, delete_transaction
 from message_service import add_message
 
@@ -15,16 +15,20 @@ Welcome to the ReuseU Backend Testing Suite!
 Please select a component to test:
 (1): Make Test Accounts
 (2): See All Accounts
-(3): Make Test Transactions
-(4): See All Transactions
-(5): Make Test Listings
-(6): See All Listings
-(7): Make Test Reviews
-(8): See All Reviews
-(9): Make Test Messages
-(10): See All Messages
-(11): Exit
-
+(3): Delete Accounts
+(4): Make Test Transactions
+(5): See All Transactions
+(6): Delete Transactions
+(7): Make Test Listings
+(8): See All Listings
+(9): Delete Listings
+(10): Make Test Reviews
+(11): See All Reviews
+(12): Delete Reviews
+(13): Make Test Messages
+(14): See All Messages
+(15): Delete Messages
+(16): Exit
 Entry: '''
 
 def get_db_root():
@@ -90,9 +94,43 @@ def load_dummy_accounts(num):
     for i in range(num):
         acc = generate_random_account()
         add_account(acc)
+
+def delete_acc_range(min,max):
+    for i in range(min,max):
+        delete_acc(i)
         
         
 # **********TRANSACTIONS**********
+
+def generate_random_transaction(listing_id):
+    buyerid = random.randint(1,1000)
+    sellerid = random.randint(1,1000)
+    price = float(random.randint(100,100000))/100
+    date_transaction = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    return {
+        'BuyerID': buyerid,
+        'DateTransaction': date_transaction,
+        'ListingID': listing_id,
+        'Price': price,
+        'SellerID': sellerid
+    }
+
+def load_dummy_transactions(listing_id_min,listing_id_max):
+    for i in range(listing_id_min,listing_id_max):
+        transac = generate_random_transaction(i)
+        add_transaction(transac)
+
+def print_all_transactions():
+    transactions = ref.child('Transaction').get()
+    if not transactions:
+        print("no transactions found")
+        return
+    for idx, transaction in enumerate(transactions, start=0):
+        if transaction is not None:
+            print("transaction key: " + str(idx))
+            for field, value in transaction.items():
+                print("  " + field + ": " + str(value))
+            print("-" * 20)
 
 def delete_transaction_range(min,max):
     for i in range(min,max):
@@ -227,6 +265,10 @@ def load_dummy_listings(num):
         acc = generate_random_listing()
         add_listing(acc)
 
+def delete_listings_range(min,max):
+    for i in range(min,max):
+        del_listing(i)
+
 # **********REVIEWS**********
 
 # generates listings for testing purposes
@@ -322,13 +364,17 @@ def load_dummy_reviews(num):
                 print(f"Skipping review: {e}")
         else:
             print("Skipping: No valid listing found.")
+
+def delete_reviews_range(min,max):
+    for i in range(min,max):
+        del_review(i)
             
 '''
 This prints the intro menu for a tester to refer to when testing the ReuseU
 database.
 '''          
 def intro_menu():
-    while (user_input := input(INTRO_MSG)) != "11":
+    while (user_input := input(INTRO_MSG)) != "16":
         if user_input == "1":
             num_accts = int(input("Enter amt. of test accounts to make: "))
             load_dummy_accounts(num_accts)
@@ -338,31 +384,62 @@ def intro_menu():
             print_all_accounts()
             exit_testing_program()
         elif user_input == "3":
-            # TODO: add transactions suite testing functions
-            pass
+            min_id = int(input("Enter min account id delete range: "))
+            max_id = int(input("Enter max account id delete range: "))
+            delete_acc_range(min_id,max_id)
+            print(f"Account ids {min_id} though {max_id} were deleted. Navigate to database to see additions.")
+            exit_testing_program()
         elif user_input == "4":
-            # TODO: add transactions suite testing functions
+            num_accts = int(input("Enter amt. of transactions to make: "))
+            load_dummy_transactions(1,num_accts)
+            print(f"{num_accts} transaction loaded. Navigate to database to see additions.")
+            exit_testing_program()
             pass
         elif user_input == "5":
+            print_all_transactions()
+            exit_testing_program()
+            pass
+        elif user_input == "6":
+            min_id = int(input("Enter min account id delete range for transactions: "))
+            max_id = int(input("Enter max account id delete range for transactions: "))
+            delete_acc_range(min_id, max_id)
+            print(f"Listings ids {min_id} though {max_id} were deleted in the transaction table. Navigate to database to see additions.")
+            exit_testing_program()
+        elif user_input == "7":
             num_listings = int(input("Enter amt. of test listings to make: "))
             load_dummy_listings(num_listings)
             print(f"{num_listings} listings loaded. Navigate to database to see additions.")
             exit_testing_program()
-        elif user_input == "6":
+        elif user_input == "8":
             print_all_listings()
             exit_testing_program()
-        elif user_input == "7":
+        elif user_input == "9":
+            min_id = int(input("Enter min listing id delete range for listings: "))
+            max_id = int(input("Enter max listing id delete range for listings: "))
+            delete_listings_range(min_id, max_id)
+            print(f"Listing ids {min_id} though {max_id} were deleted in the listings table. Navigate to database to see additions.")
+            exit_testing_program()
+        elif user_input == "10":
             num_reviews = int(input("Enter amt. of test reviews to make: "))
             load_dummy_reviews(num_reviews)
             print(f"{num_reviews} reviews loaded. Navigate to database to see additions.")
             exit_testing_program()
-        elif user_input == "8":
+        elif user_input == "11":
             print_all_reviews()
             exit_testing_program()
-        elif user_input == "9":
+        elif user_input == "12":
+            min_id = int(input("Enter min listing id delete range for reviews: "))
+            max_id = int(input("Enter max listing id delete range for reviews: "))
+            delete_reviews_range(min_id, max_id)
+            print(
+                f"Listing ids {min_id} though {max_id} were deleted in the reviews table. Navigate to database to see additions.")
+        elif user_input == "13":
             # TODO: add messages suite testing functions
             pass
-        elif user_input == "10":
+        elif user_input == "14":
+            # TODO: add messages suite testing functions
+            pass
+        elif user_input == "15":
             # TODO: add messages suite testing functions
             pass
         else:

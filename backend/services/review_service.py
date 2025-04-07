@@ -108,5 +108,6 @@ def del_review(listing_id):
             delete_review_ref.delete()
     # If not, reflect that.
         else:
-            raise ValueError(f"Post with ID {listing_id} does not exist.")
+            pass
+            #raise ValueError(f"Post with ID {listing_id} does not exist.")
         
