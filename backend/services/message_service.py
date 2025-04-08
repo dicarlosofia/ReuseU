@@ -27,19 +27,41 @@ def add_message(message_data):
     messages = ref.child('Message').get()
     new_key = str(len(messages)) if messages else "1"
     message_data['MessageID'] = new_key
+    
+    # Temporarily store and remove ListingID since Message doesn't store it 
+    # directly
     listing_id_temp = message_data['ListingID']
     message_data.pop("ListingID")
+    
+    # Add to Message Table
     ref.child('Message').child(new_key).set(message_data)
 
+    # Look for an existing chat with this listing
     target_chat = None
     chat_exists = False
     chats = ref.child('Chat').get()
+    
+        
+    # OLD LOOP
+    # for chat in chats:
+    #     for field, value in chat.items():
+    #         if field == 'ListingID':
+    #             if int(value) == listing_id_temp:
+    #                 target_chat = chat
+    #                 chat_exists = True
+    
+    # Check if chat tied to listing ID exists
     for chat in chats:
-        for field, value in chat.items():
-            if field == 'ListingID':
-                if int(value) == listing_id_temp:
-                    target_chat = chat
-                    chat_exists = True
+        if chat is not None:
+            for field, value in chat.items():
+                if field == 'ListingID':
+                    # print(f"Checking value lIDt: {listing_id_temp}, and val: {value}")
+                    if str(value) == listing_id_temp:
+                        target_chat = chat
+                        chat_exists = True
+                        break
+            if chat_exists == True:
+                break
 
     if chat_exists:
         target_chat["Messages"] = target_chat["Messages"].append(message_data)

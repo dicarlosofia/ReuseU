@@ -137,6 +137,87 @@ def delete_transaction_range(min,max):
         delete_transaction(i)
 
 # **********MESSAGES**********
+'''
+This function generates a random message
+
+---SAMPLE MESSAGE---
+{LastTime': last_time,
+'MessageContent': message_content,
+'UserID': user_id,
+'ListingID': listing_id}
+'''
+def generate_random_message():
+    last_msg_date = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    content = [
+        "Hey, can we meet in the Grill at 7:30pm??",
+        "Sorry, I can't meet until 10 am tomorrow :(",
+        "What's a good payment method for you",
+        "idk where younker is",
+        "pu to west campus and i'll give you the dell laptop out front",
+        "Haha yeah I told this one freshman that we had a West Campus LOL",
+        "Can you package up the Air Forces in bubble wrap?",
+        "I think that would be best, tysm",
+        "Hi where are we meeting again?",
+        "You too!!",
+        "Hiii is your table still up for sale?",
+        "Yes my listing is still up for sale!",
+        "No I already sold it :("
+    ]
+    msg_content = random.choice(content)
+    user_id = random.randint(00000,99999)
+    
+    # Since reviews are tied to listings, we must choose a pre-existing listing
+    # If no listings exist, no need to generate any reviews
+    listings = ref.child('Listing').get()
+    existing_ids = []
+
+    if isinstance(listings, dict):
+        existing_ids = list(listings.keys())
+    elif isinstance(listings, list):
+        # keys are just indices in the list that are not None
+        existing_ids = [str(i) for i, item in enumerate(listings)
+                        if item is not None]
+    else:
+        return None  # Unexpected format
+
+    if not existing_ids:
+        print("Skipping: No valid listing found.")
+        return None
+
+    rand_listing_id = str(random.choice(list(existing_ids)))
+    
+    return {
+        'LastTime': last_msg_date,
+        'MessageContent': msg_content,
+        'UserID': user_id, 
+        'ListingID': rand_listing_id
+    }
+    
+def print_all_messages():
+    messages = ref.child('Chat').get()
+    if not messages:
+        print("no chats found")
+        return
+    for idx, message in enumerate(messages, start=0):
+        if message is not None:
+            print("Chat key: " + str(idx))
+            for field, value in message.items():
+                print("  " + field + ": " + str(value))
+            print("-" * 20)
+
+def load_dummy_messages(num):
+    for i in range(num):
+        msg = generate_random_message()
+        if msg:  # Only try to add if it returned valid data
+            try:
+                add_message(msg)
+                print("Added message.")
+            except ValueError as e:
+                print(f"Skipping message: {e}")
+        else:
+            print("Skipping: No valid listing found.")
+    
+
 
 # **********LISTINGS**********
 
@@ -434,8 +515,10 @@ def intro_menu():
             print(
                 f"Listing ids {min_id} though {max_id} were deleted in the reviews table. Navigate to database to see additions.")
         elif user_input == "13":
-            # TODO: add messages suite testing functions
-            pass
+            num_chats = int(input("Enter amt. of messages to make: "))
+            load_dummy_messages(num_chats)
+            print(f"{num_chats} message(s) loaded. Navigate to database to see additions.")
+            exit_testing_program()
         elif user_input == "14":
             # TODO: add messages suite testing functions
             pass
