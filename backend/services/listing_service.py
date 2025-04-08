@@ -83,7 +83,20 @@ def get_all_listings_user(account_id):
         print(found_listings)
         return found_listings
 
+def get_all_listings_total():
+    listings = ref.child('Listing').get()
+    all_listings = []
+    if not listings:
+        print("no listings found")
+        return
+    for listing in listings:
+        if listing is not None:
+                all_listings.append(listing)
+    print(all_listings)
+    return all_listings
+
 #get_listing(1)
 #get_all_listings_user(802)
+#get_all_listings_total()
 
     
