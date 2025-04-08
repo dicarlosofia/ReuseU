@@ -6,7 +6,16 @@ We have not made any changes to our Requirements Document during this sprint.
 
 
 ## Non-user-facing Progress Made: 
-Significant progress has been made toward streamlining database operations for the front-end team. We've modularized core entities—transactions, reviews, accounts, listings, and messages to be manipulated withing their dedicated tables. By the end of the sprint, full CRUD (Create, Read, Update, Delete) functionality is operational and stable across these tables, with no critical regressions observed on the ReuseU platform. Robust data validation mechanisms are now in place to enforce type safety and schema consistency. Additionally, RESTful API endpoints have been implemented to allow seamless integration between the front-end and the database layer. 
+Significant progress has been made toward streamlining database operations for the front-end team. We've modularized core entities—transactions, reviews, accounts, listings, and messages to be manipulated withing their dedicated tables. By the end of the sprint, full CRUD (Create, Read, Update, Delete) functionality is operational and stable across these tables, with no critical regressions observed on the ReuseU platform. Robust data validation mechanisms are now in place to enforce type safety and schema consistency. Additionally, RESTful API endpoints have been implemented to allow seamless integration between the front-end and the database layer.
+
+1. **CRUD Services**
+Two seperate folders were made for the backend: services and routes. Peter and Sofia implememted full database functionality within the services folder. The accounts file was the first implemented which involved creating an account from an account data dictionary and deleting/getting an account using the account id. In a very similar fashion, the transaction file was also implemented. Creating CRUD operations for reviews was a little more tricky, since it needed to be ensured that a particular listing exists prior to its review being created. The messages file was not fully completed. Messages need to be stored in two seperate tables: Chat and Message tables. The chat table contains the entire conversation as a field alongside the listing id (since chats are tied to a listing), while messages contain who was the seller/buyer, timestamp and content. Adding the message and its corresponding chat was implemented, but we had some road blocks in deletion due to having to iterate through messages in a chat which was not intuitive. This will be completed next sprint
+
+2. **API Routes**
+Trung, Howie and Peter focused on connecting the database function in services to the front end through the API...
+
+3. **Backend Testing**
+Sofia and Krishna created and used a seperate test_suite to easily, manually test database CRUD functions...
 
 
 ## Git Tag for Demo Code: 
