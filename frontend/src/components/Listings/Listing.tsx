@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
+import FullListing from "./FullListing";
+import { FullListingProps } from "./FullListing";
+import { useGlobalContext } from "@/Context/GlobalContext";
+import { useRouter } from "next/router";
 
-interface ListingProps {
+
+export interface ListingProps {
   title: string;
   price: number;
   tags: string[];
@@ -13,9 +18,19 @@ interface ListingProps {
 export default function Listing({ title, price, tags, desc, image }: ListingProps) {
   const [isFavorited, setIsFavorited] = useState(false);
 
+  const router = useRouter()
+
+  const {listings, setTitle} = useGlobalContext()
+
   const onFavoriteClick = () => {
+    
     setIsFavorited(!isFavorited);
   }
+
+  const handleTitleClick = (title : string) => {
+    setTitle(title)
+    router.push("/listing")
+}
 
   return (
     <div className="flex flex-row bg-white rounded-lg shadow-sm border p-4 gap-4 h-[180px]">
@@ -26,7 +41,10 @@ export default function Listing({ title, price, tags, desc, image }: ListingProp
 
       {/* Content container */}
       <div className="flex-1 flex flex-col min-w-0">
-        <h3 className="text-lg font-semibold line-clamp-1 mb-2">{title}</h3>
+        <h3 className="text-lg font-semibold line-clamp-1 mb-2 cursor-pointer hover:underline"
+            onClick={() => handleTitleClick(title)}>
+              {title}
+        </h3>
         
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 mb-2">
