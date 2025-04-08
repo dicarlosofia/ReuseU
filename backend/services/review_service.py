@@ -105,7 +105,7 @@ def del_review(listing_id):
 def get_review(listing_id):
     reviews = ref.child('Review').get()
     if not reviews:
-        print("no listings found")
+        print("no reviews found")
         return
     review_vals = ref.child('Review').get().values()
     for review in review_vals:
@@ -116,4 +116,4 @@ def get_review(listing_id):
                     return review
     print("review not found")
 
-#get_review(17)
+get_review(17)

@@ -34,3 +34,18 @@ def add_transaction(transaction_data):
 
 def delete_transaction(listing_id):
     ref.child('Transaction').child(str(listing_id)).delete()
+
+def get_transaction(listing_id):
+    transactions = ref.child('Transaction').get()
+    if not transactions:
+        print("no transactions found")
+        return
+    for transaction in transactions:
+        if transaction is not None:
+            for field, value in transaction.items():
+                if field == "ListingID" and int(value) == int(listing_id):
+                    print(transaction)
+                    return transaction
+    print("transaction not found")
+
+#get_transaction(3)
