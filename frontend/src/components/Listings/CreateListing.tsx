@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowUpTrayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-
+import { listingsApi } from '@/api/listings';
 interface CreateListingProps {
   onSubmit?: (listingData: ListingData) => void;
   tags?: string[];
@@ -18,6 +18,18 @@ interface ListingData {
 
 export default function CreateListing({ onSubmit }: CreateListingProps) {
   const router = useRouter();
+  const createListing = async () => {
+    const listingData = {
+      title: title,
+      description: description,
+      price: Number(price),
+      category: selectedTags,
+      seller_id: "user123", // TODO: Replace with actual user ID
+      image: photos[0] ? URL.createObjectURL(photos[0]) : ""
+    }
+    const response = await listingsApi.create(listingData, "dummy-token"); // TODO: Replace with actual token
+    console.log(response);
+  }
   // State for form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -37,15 +49,8 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
     router.back();
   };
 
-  const listingSubmit = (listingData: ListingData) => {
-    const body = {
-      title: listingData.title,
-      description: listingData.description,
-      price: listingData.price,
-      photos: listingData.photos,
-      tags: listingData.tags
-    }
-    onSubmit?.(body);
+  const listingSubmit = () => {
+    console.log(createListing());
   }
 
   const chooseTag = (tag: string) => {
@@ -87,13 +92,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    listingSubmit({
-      title,
-      description,
-      price,
-      photos,
-      tags: selectedTags
-    });
+    console.log(createListing());
   };
 
   const PhotoCarousel = ({ isFullscreen }: { isFullscreen: boolean }) => (

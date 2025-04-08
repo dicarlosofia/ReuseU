@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import Listing from "./Listing"
 import { Dropdown } from "../Dropdown/Dropdown"
 import { useGlobalContext } from "@/Context/GlobalContext"
+import { listingsApi, Listing as ListingType } from "@/api/listings"
+import { reviewsApi } from "@/api/reviews";
 
 interface PriceRange {
   min: number;
@@ -49,14 +52,43 @@ const SAMPLE_LISTINGS = [
 
 export default function ListingsHomepage() {
   const { filters } = useGlobalContext();
+  const [listings, setListings] = useState<ListingType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredListings = SAMPLE_LISTINGS.filter(listing => {
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        const data = await listingsApi.getAll();
+        console.log(data);
+        const newListings = data.listings;
+        setListings(newListings)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        // Fallback to sample data if API fails
+        setListings(SAMPLE_LISTINGS as unknown as ListingType[]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [filters]);
+
+  const getListing = async () => {
+    const listing = await listingsApi.getById("listing1");
+    console.log(listing);
+    return listing;
+  }
+
+  const filteredListings = Array.isArray(listings) ? listings.filter(listing => {
     if (filters.length === 0) return true;
 
-    // check if any of the listing's tags match any of the selected filters
-    const hasMatchingTag = listing.tags.some(tag => filters.includes(tag));
+    // Check if any of the listing's tags match any of the selected filters
+    const hasMatchingTag = listing.category.some(tag => filters.includes(tag));
     
-    // check if the listing's price falls within any of the selected price ranges
+    // Check if the listing's price falls within any of the selected price ranges
     const hasMatchingPriceRange = filters.some((filter: string) => {
       const priceRange = priceRanges.find(range => range.label === filter);
       if (priceRange) {
@@ -65,12 +97,16 @@ export default function ListingsHomepage() {
       return false;
     });
 
-    //  true if either the tags match or the price range matches
+    // Return true if either the tags match or the price range matches
     return hasMatchingTag || hasMatchingPriceRange;
-  });
+  }) : [];
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="min-h-screen pt-6">
+      <button onClick={getListing}>Get Listing</button>
       <div className="flex gap-8">
         {/* Sidebar */}
         <div className="w-64 shrink-0 pl-2">
@@ -92,8 +128,8 @@ export default function ListingsHomepage() {
                 key={index}
                 title={listing.title}
                 price={listing.price}
-                tags={listing.tags}
-                desc={listing.desc}
+                tags={listing.category}
+                desc={listing.description || listing.desc || "" }
                 image={listing.image}
               />
             ))}
