@@ -402,7 +402,7 @@ def intro_menu():
         elif user_input == "6":
             min_id = int(input("Enter min account id delete range for transactions: "))
             max_id = int(input("Enter max account id delete range for transactions: "))
-            delete_acc_range(min_id, max_id)
+            delete_transaction_range(min_id, max_id)
             print(f"Listings ids {min_id} though {max_id} were deleted in the transaction table. Navigate to database to see additions.")
             exit_testing_program()
         elif user_input == "7":

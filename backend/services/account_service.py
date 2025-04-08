@@ -27,6 +27,23 @@ def add_account(account_data):
 def delete_acc(account_id):
     ref.child('Account').child(str(account_id)).delete()
 
+
 def delete_acc_range(min,max):
     for i in range(min,max):
         delete_acc(i)
+
+def get_acc(account_id):
+    accounts = ref.child('Account').get()
+    if not accounts:
+        print("no accounts found")
+        return
+    for account in accounts:
+        if account is not None:
+            for field, value in account.items():
+                if field == "UserID" and int(value) == int(account_id):
+                    print(account)
+                    return account
+    print("account not found")
+    return None
+
+#get_acc(1)

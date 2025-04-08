@@ -71,16 +71,18 @@ def add_review(review_data):
         raise ValueError(f"Listing with ID {listing_id_temp} does not exist.")
 
     # Check if a review already exists for this post
-    review_vals = ref.child('Review').get().values()
 
-    # Check if listing ID exists
-    for review in review_vals:
-        if review is not None:
-            listing_val = list(review.values())[0]
-            # print(f"listing value: {listing_val}")
-            if str(listing_val) == listing_id_temp:
-                print(f"OOOOOOOOOOOOOOOOOReview for listing {listing_id_temp} already exists.OOOOOOOOOOOOOOOO")
-                return
+    if ref.child('Review').get() is not None:
+        review_vals = ref.child('Review').get().values()
+
+        # Check if listing ID exists
+        for review in review_vals:
+            if review is not None:
+                listing_val = list(review.values())[0]
+                # print(f"listing value: {listing_val}")
+                if str(listing_val) == listing_id_temp:
+                    print(f"OOOOOOOOOOOOOOOOOReview for listing {listing_id_temp} already exists.OOOOOOOOOOOOOOOO")
+                    return
 
     # Save the review under the reviews node using ListingID as key
     ref.child('Review').child(str(listing_id_temp)).set(review_data)
@@ -99,3 +101,18 @@ realtime-database-use-python
 def del_review(listing_id):
     # Connect to the database
     ref.child('Review').child(str(listing_id)).delete()
+
+def get_review(listing_id):
+    reviews = ref.child('Review').get()
+    if not reviews:
+        print("no listings found")
+        return
+    for review in reviews:
+        if review is not None:
+            for field, value in review.items():
+                if field == "ListingID" and int(value) == int(listing_id):
+                    print(review)
+                    return review
+    print("review not found")
+
+get_review(3)

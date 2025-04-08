@@ -52,5 +52,38 @@ def del_listing(listing_id):
     # Connect to the database
     ref.child('Listing').child(str(listing_id)).delete()
 
+def get_listing(listing_id):
+    listings = ref.child('Listing').get()
+    if not listings:
+        print("no listings found")
+        return
+    for listing in listings:
+        if listing is not None:
+            for field, value in listing.items():
+                if field == "ListingID" and int(value) == int(listing_id):
+                    print(listing)
+                    return listing
+    print("listing not found")
+
+def get_all_listings_user(account_id):
+    listings = ref.child('Listing').get()
+    found_listings = []
+    if not listings:
+        print("no listings found")
+        return
+    for listing in listings:
+        if listing is not None:
+            for field, value in listing.items():
+                if field == "UserID" and int(value) == int(account_id):
+                    found_listings.append(listing)
+    if not found_listings:
+        print("user had no listings")
+        return None
+    else:
+        print(found_listings)
+        return found_listings
+
+#get_listing(1)
+#get_all_listings_user(802)
 
     
