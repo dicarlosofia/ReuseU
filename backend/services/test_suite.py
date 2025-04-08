@@ -543,5 +543,6 @@ def exit_testing_program():
     else: 
         print("Invalid input. Continuing...\n")
         
-intro_menu()
+#intro_menu()
 #print(generate_random_listing())
+print(generate_random_review())

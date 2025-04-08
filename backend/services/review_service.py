@@ -116,4 +116,18 @@ def get_review(listing_id):
                     return review
     print("review not found")
 
+def get_all_reviews():
+    reviews = ref.child('Review').get()
+    if not reviews:
+        print("no reviews found")
+        return
+    review_vals = ref.child('Review').get().values()
+    all_reviews = []
+    for review in review_vals:
+        if review is not None:
+            all_reviews.append(review)
+    print(all_reviews)
+    return all_reviews
+
 #get_review(17)
+#get_all_reviews()
