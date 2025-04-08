@@ -116,4 +116,4 @@ def get_review(listing_id):
                     return review
     print("review not found")
 
-get_review(17)
+#get_review(17)
