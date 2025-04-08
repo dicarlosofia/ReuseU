@@ -107,7 +107,8 @@ def get_review(listing_id):
     if not reviews:
         print("no listings found")
         return
-    for review in reviews:
+    review_vals = ref.child('Review').get().values()
+    for review in review_vals:
         if review is not None:
             for field, value in review.items():
                 if field == "ListingID" and int(value) == int(listing_id):
@@ -115,4 +116,4 @@ def get_review(listing_id):
                     return review
     print("review not found")
 
-get_review(3)
+#get_review(17)
