@@ -1,8 +1,9 @@
+import { useGlobalContext } from "@/Context/GlobalContext";
 import { ChevronLeftIcon } from "@heroicons/react/16/solid";
 import { ChevronRightIcon } from "@heroicons/react/16/solid";
+import { useRouter } from "next/router";
 
-
-const SAMPLE_LISTINGS = [
+export const SAMPLE_LISTINGS = [
     {
       title: "Air Force 1s",
       price: 20.00,
@@ -34,14 +35,22 @@ const SAMPLE_LISTINGS = [
   ];
 
 
-  interface FullListingProps {
+  export interface FullListingProps {
     title: string;
   }
 
-  export default function FullListing({title} : FullListingProps) {
+  export default function FullListing() {
+   
+    const router = useRouter()
+
+    const handleBackClick = () => {
+      router.back()
+  }
 
     // find listing
-    const listing = SAMPLE_LISTINGS.find(
+    const {title, listings} = useGlobalContext()
+    console.log(title, listings)
+    const  listing = listings.find(
         (item) => item.title === title
     )
 
@@ -56,9 +65,10 @@ const SAMPLE_LISTINGS = [
 
     return (
 
-        <div className="flex items-start max-w-7xl mx-auto p-4">
+      <div className="flex items-start max-w-7xl mx-auto p-4 mt-10">
         {/* Back Button on the Left */}
-        <button className="bg-blue-500 text-white px-4 py-2 rounded-md mr-4 h-fit">
+        <button className="bg-blue-500 text-white px-4 py-2 rounded-md mr-4 h-fit cursor-pointer"
+                onClick={handleBackClick}>
           Back
         </button>
       

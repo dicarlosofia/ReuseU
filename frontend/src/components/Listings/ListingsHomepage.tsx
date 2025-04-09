@@ -1,6 +1,8 @@
 import Listing from "./Listing"
 import { Dropdown } from "../Dropdown/Dropdown"
 import { useGlobalContext } from "@/Context/GlobalContext"
+import { useContext } from "react"
+import { setLazyProp } from "next/dist/server/api-utils";
 
 interface PriceRange {
   min: number;
@@ -48,7 +50,8 @@ const SAMPLE_LISTINGS = [
 ];
 
 export default function ListingsHomepage() {
-  const { filters } = useGlobalContext();
+  const { filters, setListings } = useGlobalContext();
+  setListings(SAMPLE_LISTINGS)
 
   const filteredListings = SAMPLE_LISTINGS.filter(listing => {
     if (filters.length === 0) return true;
