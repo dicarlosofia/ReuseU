@@ -1,8 +1,23 @@
+/**
+ * Profile Section Component
+ * 
+ * This component displays a user's profile information and provides functionality to edit it.
+ * Features include:
+ * - Profile picture display
+ * - User information display (username, name, email, etc.)
+ * - Activity statistics (items sold/bought)
+ * - Edit profile functionality
+ * - Back navigation
+ * 
+ * The component is used on the user's profile page.
+ */
+
 import React, { useState } from "react";
 import { UserCircleIcon } from "@heroicons/react/24/outline"
 import { useRouter } from "next/router";
 import EditProfileModal from "./EditProfileModal";
 
+// Props interface for the ProfileSection component
 interface ProfileProps {
     username: string,
     password: string,
@@ -15,6 +30,7 @@ interface ProfileProps {
     itemsBought: number,
 }
 
+// Data structure for editable profile information
 interface ProfileData {
     username: string,
     name: string,
@@ -34,23 +50,28 @@ const ProfileSection: React.FC<ProfileProps> = ({username, password, rating, nam
         aboutMe
     });
 
+    // Handle back button click
     const handleBack = () => {
         router.back();
     }
 
+    // Open edit profile modal
     const handleEditClick = () => {
         setIsEditModalOpen(true);
     }
 
+    // Save profile changes
     const handleSaveProfile = (newData: ProfileData) => {
         setProfileData(newData);
         setIsEditModalOpen(false);
         // TODO: Add API call to save profile changes
     }
 
+    // Main profile layout
     return (
         <div className="flex justify-center h-screen">
             <div className="grid grid-cols-8 gap-4 items-center w-full max-w-5xl mx-auto">
+                {/* Left column - Profile picture and basic info */}
                 <div className="col-span-4">
                     <div className="flex flex-col gap-4">
                         <UserCircleIcon className="w-128 h-128" />
@@ -58,6 +79,7 @@ const ProfileSection: React.FC<ProfileProps> = ({username, password, rating, nam
                         <span className="text-2xl font-bold">Password: {password}</span>
                     </div>
                 </div>
+                {/* Right column - Detailed profile information */}
                 <div className="col-span-4">
                     <div className="flex flex-col gap-4">
                         <span className="text-2xl font-bold">Rating: {rating}</span>
@@ -69,6 +91,7 @@ const ProfileSection: React.FC<ProfileProps> = ({username, password, rating, nam
                         <span className="text-2xl font-bold">Items bought: {itemsBought}</span>
                     </div>
                 </div>
+                {/* Action buttons */}
                 <div className="col-span-8 flex justify-end gap-4">
                     <button 
                         onClick={handleBack}
@@ -85,6 +108,7 @@ const ProfileSection: React.FC<ProfileProps> = ({username, password, rating, nam
                 </div>
             </div>
 
+            {/* Edit profile modal */}
             <EditProfileModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}

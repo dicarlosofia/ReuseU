@@ -1,5 +1,10 @@
 import { API_BASE_URL, getAuthHeaders } from './config';
 
+/*
+This file contains the API for the reviews.
+It is used to connect to the backend API.
+*/
+
 export interface Review {
   id?: number;
   listing_id: number;

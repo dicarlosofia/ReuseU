@@ -1,6 +1,5 @@
 import { createContext, useContext, useState } from 'react'
 import Listing from '@/components/Listings/Listing'
-import { SAMPLE_LISTINGS } from '@/components/Listings/FullListing'
 
 const GlobalContext = createContext<any>(null)
 

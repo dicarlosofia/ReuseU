@@ -1,10 +1,26 @@
+/**
+ * Dropdown Component
+ * 
+ * This component provides a collapsible filter menu for listings.
+ * Features include:
+ * - Expandable category sections
+ * - Price range filters
+ * - Category-specific filters
+ * - Checkbox selection for multiple filters
+ * - Animated transitions
+ * 
+ * The component is used in the listings page sidebar for filtering items.
+ */
+
 import { useState } from 'react';
 import { useGlobalContext } from '@/Context/GlobalContext';
 
+// Props interface for the Dropdown component
 interface Props {
   onCategorySelect?: (category: string) => void;
 }
 
+// Price range structure for filtering
 interface PriceRange {
   min: number;
   max: number;
@@ -15,6 +31,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
   const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
   const { filters, setFilters } = useGlobalContext();
 
+  // Toggle category expansion
   const toggleCategory = (index: number) => {
     setExpandedCategories(prev => 
       prev.includes(index) 
@@ -23,6 +40,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
     );
   };
 
+  // Handle filter selection/deselection
   const handleFilterChange = (item: string, isChecked: boolean) => {
     if (isChecked) {
       setFilters((prev: string[]) => [...prev, item]);
@@ -31,6 +49,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
     }
   };
 
+  // Price range options for filtering
   const priceRanges: PriceRange[] = [
     { min: 0, max: 10, label: "Under $10" },
     { min: 10, max: 50, label: "$10 - $50" },
@@ -39,6 +58,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
     { min: 500, max: Infinity, label: "Above $500" }
   ];
 
+  // Category definitions with their respective items
   const categories = [
     { 
       name: 'Price', 
@@ -72,10 +92,12 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
     }
   ];
 
+  // Main dropdown menu layout
   return (
     <div className="h-full flex flex-col gap-6 py-4">
       {categories.map((category, index) => (
         <div key={index} className="px-4">
+          {/* Category header with toggle button */}
           <div 
             onClick={() => toggleCategory(index)}
             className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors"
@@ -92,6 +114,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
+          {/* Category items with checkboxes */}
           <div 
             className={`pl-6 mt-2 overflow-hidden transition-all duration-200 ${
               expandedCategories.includes(index) 

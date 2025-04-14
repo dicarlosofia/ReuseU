@@ -1,18 +1,35 @@
+/**
+ * Chat Component
+ * 
+ * This is a floating chat interface component that allows users to:
+ * - View their active chats
+ * - Open and close individual chat windows
+ * - Send and receive messages
+ * - See unread message counts
+ * - Collapse/expand the chat interface
+ * 
+ * The component can be initialized with a specific listing to start a new chat.
+ * It includes real-time message updates and a simulated response system.
+ */
+
 import { useState, useEffect } from 'react';
 import { ChatBubbleLeftIcon, ChevronDownIcon, UserCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useGlobalContext } from '@/Context/GlobalContext';
 
+// Props for initializing chat with a specific listing
 interface ChatComponentProps {
   listingId?: string;
   listingTitle?: string;
 }
 
+// Structure for individual messages
 interface Message {
   text: string;
   sender: 'user' | 'other';
   timestamp: string;
 }
 
+// Structure for chat conversations
 interface Chat {
   id: string;
   title: string;
@@ -28,6 +45,7 @@ interface Chat {
 
 const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
   const { user } = useGlobalContext();
+  // Initialize with sample chats for demonstration
   const [chats, setChats] = useState<Chat[]>([
     {
       id: '1',
@@ -74,6 +92,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
   const [isMinimized, setIsMinimized] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Initialize new chat when listing details are provided
   useEffect(() => {
     if (listingId && listingTitle) {
       setChats(prevChats => {
@@ -95,6 +114,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
     }
   }, [listingId, listingTitle]);
 
+  // Handle sending a new message
   const handleSendMessage = (chatId: string, e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
@@ -140,6 +160,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
     }
   };
 
+  // Open a specific chat window
   const openChat = (chat: Chat) => {
     setSelectedChat(chat);
     setIsMinimized(false);
@@ -150,19 +171,23 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
     })));
   };
 
+  // Close the current chat window
   const closeChat = () => {
     setIsMinimized(true);
     setSelectedChat(null);
     setIsCollapsed(false);
   };
 
+  // Toggle chat interface collapse/expand
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
   };
 
+  // Main chat interface render
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {!isMinimized && selectedChat ? (
+        // Individual chat window
         <div className="w-80 bg-white rounded-lg shadow-xl">
           <div className="flex items-center justify-between p-3 bg-blue-600 text-white rounded-t-lg">
             <div className="flex items-center gap-2">
@@ -184,6 +209,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
 
           {!isCollapsed && (
             <>
+              {/* Message history */}
               <div className="h-96 overflow-y-auto p-4">
                 {selectedChat.messages.map((message, index) => (
                   <div
@@ -208,6 +234,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
                 ))}
               </div>
 
+              {/* Message input form */}
               <form onSubmit={(e) => handleSendMessage(selectedChat.id, e)} className="p-3 border-t">
                 <div className="flex gap-2">
                   <input
@@ -229,6 +256,7 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
           )}
         </div>
       ) : (
+        // Chat list view
         <div className="w-80 bg-white rounded-lg shadow-xl">
           <div className="p-3 bg-blue-600 text-white rounded-t-lg flex justify-between items-center">
             <h3 className="font-semibold">My Chats</h3>
@@ -248,17 +276,15 @@ const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
                     <UserCircleIcon className="h-8 w-8 text-gray-400" />
                     <div className="text-left">
                       <div className="font-medium">{chat.participant.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {chat.messages[chat.messages.length - 1]?.text || 'No messages yet'}
-                      </div>
+                      <div className="text-sm text-gray-500">{chat.title}</div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end">
+                  <div className="text-right">
                     <div className="text-xs text-gray-500">{chat.lastMessageTime}</div>
                     {chat.unreadCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 mt-1">
+                      <div className="mt-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {chat.unreadCount}
-                      </span>
+                      </div>
                     )}
                   </div>
                 </button>

@@ -1,16 +1,17 @@
 import { API_BASE_URL, getAuthHeaders } from './config';
+import { ListingData } from '@/components/Listings/CreateListing';
+
 
 export interface Listing {
-  id?: string;
-  title: string;
-  price: number;
-  description: string;
-  desc?: string;
-  category: string[];
-  image?: string;
-  seller_id: string;
-  created_at?: string;
-  updated_at?: string;
+  ListingID?: string;
+  Title: string;
+  Description: string;
+  Price: string;
+  Category: string[];
+  Images?: string[];
+  UserID: number;
+  SellStatus: number;
+  CreateTime?: string;
 }
 
 export const listingsApi = {
@@ -18,7 +19,8 @@ export const listingsApi = {
   getAll: async () => {
     const response = await fetch(`${API_BASE_URL}/listings`);
     if (!response.ok) throw new Error('Failed to fetch listings');
-    return response.json();
+    const data = await response.json();
+    return data.listings;
   },
 
   // Get a single listing by ID
@@ -29,7 +31,7 @@ export const listingsApi = {
   },
 
   // Create a new listing
-  create: async (listing: Omit<Listing, 'id' | 'created_at' | 'updated_at'>, token: string) => {
+  create: async (listing: ListingData, token: string) => {
     const response = await fetch(`${API_BASE_URL}/listings/`, {
       method: 'POST',
       headers: getAuthHeaders(token),
