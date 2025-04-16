@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements.txt
       - name: Write pk.json from secrets
         run: |
-          echo "${{ secrets.PK_JSON }}" | base64 --decode >pk.json
+          echo "${{ secrets.qPK_JSON }}" | base64 --decode >pk.json
       - name: Run Pytest
         run: |
           cd backend
