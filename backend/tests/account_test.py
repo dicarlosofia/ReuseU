@@ -31,8 +31,5 @@ for idx, account in enumerate(accounts, start=0):
     if account is not None:
         acc_total +=1
 
-#{'First_name': 'Krishna', 'Last_name': 'Nayar', 'PhoneNumber': '713-775-9080', 'School': 'grinnell', 'UserID': '51', 'Username': 'kanayar21', 'dateTime_creation': '2025-04-08T18:56:02.560105Z'}
-
 delete_acc(acc_total)
-
 
