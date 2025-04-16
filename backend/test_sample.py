@@ -4,4 +4,5 @@ def incbytwo(x):
 
 def test_answer():
     assert incbytwo(3) == 5
+    assert incbytwo(4) == 6
 
