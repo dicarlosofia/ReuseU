@@ -21,8 +21,12 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+      - name: Write pk.json from secrets
+        run: |
+          echo "${{ secrets.PK_JSON }}" | base64 --decode >pk.json
       - name: Run Pytest
         run: |
           cd backend
           pytest
+      - name: Delete pk.json
+        run: rm pk.json
