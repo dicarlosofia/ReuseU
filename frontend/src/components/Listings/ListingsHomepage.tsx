@@ -81,12 +81,17 @@ export default function ListingsHomepage() {
     }
 
     // Then apply category and price filters
-    if (filters.length === 0) return true;
-    const hasMatchingCategory = listing.Category.some((category: string) => filters.includes(category));
-    const hasMatchingPriceRange = filters.some((filter: string) => {
-      const priceRange = priceRanges.find(range => range.label === filter);
-      if (priceRange) {
-        return parseFloat(listing.Price) >= priceRange.min && parseFloat(listing.Price) < priceRange.max;
+    if (!filters || Object.keys(filters).length === 0) return true;
+
+    // Check category filter
+    const hasMatchingCategory = listing.Category.some((category: string) => 
+      filters.categories?.includes(category)
+    );
+
+    // Check price range filter
+    const hasMatchingPriceRange = priceRanges.some((range) => {
+      if (filters.priceRanges?.includes(range.label)) {
+        return parseFloat(listing.Price) >= range.min && parseFloat(listing.Price) < range.max;
       }
       return false;
     });

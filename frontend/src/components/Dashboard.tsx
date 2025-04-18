@@ -13,10 +13,14 @@
  */
 
 import { useRouter } from 'next/router';
-import { MagnifyingGlassIcon, UserCircleIcon, Cog8ToothIcon, BuildingStorefrontIcon } from "@heroicons/react/16/solid";
+import { MagnifyingGlassIcon, UserCircleIcon, Cog8ToothIcon, BuildingStorefrontIcon, ArrowRightEndOnRectangleIcon } from "@heroicons/react/16/solid";
+import { useGlobalContext } from '@/Context/GlobalContext';
+import { useState } from 'react';
 
 export default function Dashboard() {
     const router = useRouter();
+    const { logout } = useGlobalContext();
+    const [showSettings, setShowSettings] = useState(false);
 
     // Navigate to home page
     const handleReuseClick = () => {
@@ -33,9 +37,16 @@ export default function Dashboard() {
         router.push('/profile');
     }
 
-    // Handle settings button click (currently empty)
+    // Handle settings button click
     const handleCogClick = () => {
+        setShowSettings(!showSettings);
+    }
 
+    // Handle logout
+    const handleLogout = () => {
+        logout();
+        setShowSettings(false);
+        router.push('/login');
     }
 
     // Main navigation bar layout with all interactive elements
@@ -67,12 +78,26 @@ export default function Dashboard() {
                 className="cursor-pointer right-3 top-[2px] flex items-center h-full w-10"
                 onClick={handleUserCircleClick} />
             </div>
-            {/* Settings button */}
-            <div 
-            className="pl-5 pr-5 h-full flex items-center">
+            {/* Settings button with dropdown */}
+            <div className="pl-5 pr-5 h-full flex items-center relative">
                 <Cog8ToothIcon 
                 className="cursor-pointer right-3 top-[2px] flex items-center h-full w-10"
                 onClick={handleCogClick} />
+                
+                {/* Settings dropdown menu */}
+                {showSettings && (
+                    <div className="absolute right-5 top-full mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                        <div className="py-1">
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                <ArrowRightEndOnRectangleIcon className="h-5 w-5 mr-2" />
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

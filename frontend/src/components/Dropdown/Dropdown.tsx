@@ -41,12 +41,21 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
   };
 
   // Handle filter selection/deselection
-  const handleFilterChange = (item: string, isChecked: boolean) => {
-    if (isChecked) {
-      setFilters((prev: string[]) => [...prev, item]);
-    } else {
-      setFilters((prev: string[]) => prev.filter(filter => filter !== item));
-    }
+  const handleFilterChange = (item: string, type: 'categories' | 'priceRanges', isChecked: boolean) => {
+    setFilters((prev: any) => {
+      const newFilters = { ...prev };
+      if (!newFilters[type]) {
+        newFilters[type] = [];
+      }
+      
+      if (isChecked) {
+        newFilters[type] = [...newFilters[type], item];
+      } else {
+        newFilters[type] = newFilters[type].filter((filter: string) => filter !== item);
+      }
+      
+      return newFilters;
+    });
   };
 
   // Price range options for filtering
@@ -63,32 +72,32 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
     { 
       name: 'Price', 
       items: priceRanges.map(range => range.label),
-      type: 'price' as const
+      type: 'priceRanges' as const
     },
     { 
       name: 'Kitchen', 
       items: ["Cookware", "Appliances", "Utensils", "Storage", "Dinnerware"],
-      type: 'category' as const
+      type: 'categories' as const
     },
     { 
       name: 'Furniture', 
       items: ["Chairs", "Tables", "Beds", "Desks", "Storage"],
-      type: 'category' as const
+      type: 'categories' as const
     },
     { 
       name: 'Electronics', 
       items: ["Laptops", "Phones", "Tablets", "TVs", "Audio"],
-      type: 'category' as const
+      type: 'categories' as const
     },
     { 
       name: 'Clothing', 
       items: ["Shirts", "Tops", "Bottoms", "Dresses", "Accessories"],
-      type: 'category' as const
+      type: 'categories' as const
     },
     { 
       name: 'Miscellaneous', 
       items: ["Books", "Toys", "Art", "Crafts", "Other"],
-      type: 'category' as const
+      type: 'categories' as const
     }
   ];
 
@@ -127,8 +136,8 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="checkbox" 
-                    checked={filters.includes(item)}
-                    onChange={(e) => handleFilterChange(item, e.target.checked)}
+                    checked={filters[category.type]?.includes(item) || false}
+                    onChange={(e) => handleFilterChange(item, category.type, e.target.checked)}
                     className="rounded border-gray-300 text-[#2A9FD0] focus:ring-[#2A9FD0]" 
                   />
                   <span className="text-gray-700">{item}</span>
