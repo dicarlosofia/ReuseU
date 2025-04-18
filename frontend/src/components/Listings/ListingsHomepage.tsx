@@ -181,6 +181,7 @@ export default function ListingsHomepage() {
                 desc={listing.Description}
                 image={listing.Images?.[0] || ""}
                 ListingID={listing.ListingID || ''}
+                UserID={listing.UserID}
               />
             ))}
           </div>

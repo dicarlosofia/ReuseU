@@ -94,7 +94,7 @@ export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
 
   // Main dropdown menu layout
   return (
-    <div className="h-full flex flex-col gap-6 py-4">
+    <div className="h-full flex flex-col gap-6 py-4 overflow-y-auto max-h-[calc(100vh-12rem)]">
       {categories.map((category, index) => (
         <div key={index} className="px-4">
           {/* Category header with toggle button */}
