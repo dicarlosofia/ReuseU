@@ -229,11 +229,6 @@ def load_dummy_messages(num):
 def generate_random_listing():
     # sample data lists
     categories = {
-        "Price": ["Under $10", 
-                  "$10 - $50", 
-                  "$50 - $100", 
-                  "$100 - $500", 
-                  "Above $500"],
         "Kitchen": ["Cookware", 
                     "Appliances", 
                     "Utensils", 

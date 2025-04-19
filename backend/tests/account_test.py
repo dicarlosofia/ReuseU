@@ -1,9 +1,9 @@
 import firebase_admin
 from firebase_admin import credentials, db
 
-import sys
-sys.path.insert(0, '/Users/kanayar21/ReuseU/backend/services')
-from account_service import add_account, delete_acc, get_acc
+from services.account_service import add_account, delete_acc, get_acc
+
+
 
 try:
     firebase_admin.get_app()
@@ -15,9 +15,7 @@ except ValueError:
 # get root ref
 ref = db.reference('/')
 
-acc_total = 0
-
-add_account({
+account_id = add_account({
         'First_name': 'Krishna',
         'Last_name': 'Nayar',
         'PhoneNumber': '713-775-9080',
@@ -26,10 +24,17 @@ add_account({
         'dateTime_creation': '2025-04-08T18:56:02.560105Z'
     })
 
-accounts = ref.child('Account').get()
-for idx, account in enumerate(accounts, start=0):
-    if account is not None:
-        acc_total +=1
+# accounts = ref.child('Account').get()
+# for idx, account in enumerate(accounts, start=0):
+#     if account is not None:
+#         acc_total +=1
 
-delete_acc(acc_total)
+assert get_acc(account_id)['First_name'] == 'Krishna'
+assert get_acc(account_id)['Last_name'] == 'Nayar'
+assert get_acc(account_id)['PhoneNumber'] == '713-775-9080'
+assert get_acc(account_id)['School'] == 'grinnell'
+assert get_acc(account_id)['Username'] == 'kanayar21'
+assert get_acc(account_id)['dateTime_creation'] == '2025-04-08T18:56:02.560105Z'
+
+delete_acc(account_id)
 

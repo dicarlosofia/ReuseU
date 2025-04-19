@@ -23,6 +23,7 @@ def add_account(account_data):
     new_key = str(len(accounts)) if accounts else "1"
     account_data['UserID'] = new_key
     ref.child('Account').child(new_key).set(account_data)
+    return new_key
 
 def delete_acc(account_id):
     ref.child('Account').child(str(account_id)).delete()
@@ -41,7 +42,7 @@ def get_acc(account_id):
         if account is not None:
             for field, value in account.items():
                 if field == "UserID" and int(value) == int(account_id):
-                    print(account)
+                    #print(account)
                     return account
     print("account not found")
     return None

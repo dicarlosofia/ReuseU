@@ -40,6 +40,7 @@ def add_listing(listing_data):
     new_key = str(len(listings)) if listings else "1"
     listing_data['ListingID'] = new_key
     ref.child('Listing').child(new_key).set(listing_data)
+    return new_key
 
 '''
 A function that deletes a listing from the Listing table.
@@ -61,7 +62,7 @@ def get_listing(listing_id):
         if listing is not None:
             for field, value in listing.items():
                 if field == "ListingID" and int(value) == int(listing_id):
-                    print(listing)
+                    #print(listing)
                     return listing
     print("listing not found")
 

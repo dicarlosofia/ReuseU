@@ -29,6 +29,7 @@ def add_transaction(transaction_data):
     # notice we read the number of accounts here and increment by 1
     new_key = transaction_data['ListingID']
     ref.child('Transaction').child(str(new_key)).set(transaction_data)
+    return new_key
 
 
 
