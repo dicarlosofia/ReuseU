@@ -1,143 +1,126 @@
-/**
- * Dropdown Component
- * 
- * This component provides a collapsible filter menu for listings.
- * Features include:
- * - Expandable category sections
- * - Price range filters
- * - Category-specific filters
- * - Checkbox selection for multiple filters
- * - Animated transitions
- * 
- * The component is used in the listings page sidebar for filtering items.
- */
+import { useState } from "react";
+import { useGlobalContext } from "@/Context/GlobalContext";
+import { ChevronDownIcon, ChevronUpIcon, TagIcon, BanknoteIcon } from "lucide-react";
 
-import { useState } from 'react';
-import { useGlobalContext } from '@/Context/GlobalContext';
-
-// Props interface for the Dropdown component
-interface Props {
-  onCategorySelect?: (category: string) => void;
-}
-
-// Price range structure for filtering
-interface PriceRange {
-  min: number;
-  max: number;
-  label: string;
-}
-
-export const Dropdown: React.FC<Props> = ({ onCategorySelect }) => {
-  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
+export function Dropdown() {
   const { filters, setFilters } = useGlobalContext();
+  const [isCategoryOpen, setIsCategoryOpen] = useState(true);
+  const [isPriceOpen, setIsPriceOpen] = useState(true);
 
-  // Toggle category expansion
-  const toggleCategory = (index: number) => {
-    setExpandedCategories(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index) 
-        : [...prev, index]
-    );
-  };
-
-  // Handle filter selection/deselection
-  const handleFilterChange = (item: string, isChecked: boolean) => {
-    if (isChecked) {
-      setFilters((prev: string[]) => [...prev, item]);
-    } else {
-      setFilters((prev: string[]) => prev.filter(filter => filter !== item));
-    }
-  };
-
-  // Price range options for filtering
-  const priceRanges: PriceRange[] = [
-    { min: 0, max: 10, label: "Under $10" },
-    { min: 10, max: 50, label: "$10 - $50" },
-    { min: 50, max: 100, label: "$50 - $100" },
-    { min: 100, max: 500, label: "$100 - $500" },
-    { min: 500, max: Infinity, label: "Above $500" }
-  ];
-
-  // Category definitions with their respective items
   const categories = [
-    { 
-      name: 'Price', 
-      items: priceRanges.map(range => range.label),
-      type: 'price' as const
-    },
-    { 
-      name: 'Kitchen', 
-      items: ["Cookware", "Appliances", "Utensils", "Storage", "Dinnerware"],
-      type: 'category' as const
-    },
-    { 
-      name: 'Furniture', 
-      items: ["Chairs", "Tables", "Beds", "Desks", "Storage"],
-      type: 'category' as const
-    },
-    { 
-      name: 'Electronics', 
-      items: ["Laptops", "Phones", "Tablets", "TVs", "Audio"],
-      type: 'category' as const
-    },
-    { 
-      name: 'Clothing', 
-      items: ["Shirts", "Tops", "Bottoms", "Dresses", "Accessories"],
-      type: 'category' as const
-    },
-    { 
-      name: 'Miscellaneous', 
-      items: ["Books", "Toys", "Art", "Crafts", "Other"],
-      type: 'category' as const
-    }
+    "Electronics", 
+    "Furniture", 
+    "Clothing", 
+    "Books", 
+    "Home Decor", 
+    "Kitchen", 
+    "Sports", 
+    "Toys"
   ];
 
-  // Main dropdown menu layout
+  const priceRanges = [
+    "Under $10",
+    "$10 - $50",
+    "$50 - $100",
+    "$100 - $500",
+    "Above $500"
+  ];
+
+  const handleFilterToggle = (filter) => {
+    if (filters.includes(filter)) {
+      setFilters(filters.filter(f => f !== filter));
+    } else {
+      setFilters([...filters, filter]);
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col gap-6 py-4">
-      {categories.map((category, index) => (
-        <div key={index} className="px-4">
-          {/* Category header with toggle button */}
-          <div 
-            onClick={() => toggleCategory(index)}
-            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors"
-          >
-            <span className="text-lg font-medium">{category.name}</span>
-            <svg 
-              className={`w-5 h-5 transition-transform duration-200 ${
-                expandedCategories.includes(index) ? 'rotate-180' : ''
-              }`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-          {/* Category items with checkboxes */}
-          <div 
-            className={`pl-6 mt-2 overflow-hidden transition-all duration-200 ${
-              expandedCategories.includes(index) 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            }`}
-          >
-            {category.items.map((item, idx) => (
-              <div key={idx} className="py-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={filters.includes(item)}
-                    onChange={(e) => handleFilterChange(item, e.target.checked)}
-                    className="rounded border-gray-300 text-[#2A9FD0] focus:ring-[#2A9FD0]" 
+    <div className="text-gray-700">
+      {/* Categories section */}
+      <div className="mb-4 border border-emerald-100 rounded-lg overflow-hidden">
+        <button
+          className="flex items-center justify-between w-full p-3 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+          onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+        >
+          <span className="font-medium flex items-center">
+            <TagIcon className="h-4 w-4 mr-2 text-emerald-600" />
+            Categories
+          </span>
+          {isCategoryOpen ? (
+            <ChevronUpIcon className="h-5 w-5 text-emerald-600" />
+          ) : (
+            <ChevronDownIcon className="h-5 w-5 text-emerald-600" />
+          )}
+        </button>
+
+        {isCategoryOpen && (
+          <div className="p-3">
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <label key={category} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.includes(category)}
+                    onChange={() => handleFilterToggle(category)}
+                    className="form-checkbox h-4 w-4 text-emerald-600 rounded"
                   />
-                  <span className="text-gray-700">{item}</span>
+                  <span className={filters.includes(category) ? "text-emerald-700" : "text-gray-600"}>
+                    {category}
+                  </span>
                 </label>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        )}
+      </div>
+
+      {/* Price ranges section */}
+      <div className="mb-4 border border-emerald-100 rounded-lg overflow-hidden">
+        <button
+          className="flex items-center justify-between w-full p-3 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+          onClick={() => setIsPriceOpen(!isPriceOpen)}
+        >
+          <span className="font-medium flex items-center">
+            <BanknoteIcon className="h-4 w-4 mr-2 text-emerald-600" />
+            Price Range
+          </span>
+          {isPriceOpen ? (
+            <ChevronUpIcon className="h-5 w-5 text-emerald-600" />
+          ) : (
+            <ChevronDownIcon className="h-5 w-5 text-emerald-600" />
+          )}
+        </button>
+
+        {isPriceOpen && (
+          <div className="p-3">
+            <div className="space-y-2">
+              {priceRanges.map((price) => (
+                <label key={price} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.includes(price)}
+                    onChange={() => handleFilterToggle(price)}
+                    className="form-checkbox h-4 w-4 text-emerald-600 rounded"
+                  />
+                  <span className={filters.includes(price) ? "text-emerald-700" : "text-gray-600"}>
+                    {price}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Reset filters button */}
+      {filters.length > 0 && (
+        <button
+          className="w-full p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors text-sm font-medium"
+          onClick={() => setFilters([])}
+        >
+          Reset Filters
+        </button>
+      )}
     </div>
   );
 }

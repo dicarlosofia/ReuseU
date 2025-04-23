@@ -48,6 +48,8 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Available category tags for selection
   const availableTags = [
@@ -62,16 +64,27 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
 
   // Submit new listing to the server
   const listingSubmit = async (listingData: ListingData) => {
-    const body = {
-      Category: listingData.Category,
-      Description: listingData.Description,
-      Price: listingData.Price,
-      SellStatus: listingData.SellStatus,
-      Title: listingData.Title,
-      UserID: listingData.UserID,
+    setIsLoading(true);
+    try {
+      const body = {
+        Category: listingData.Category,
+        Description: listingData.Description,
+        Price: listingData.Price,
+        SellStatus: listingData.SellStatus,
+        Title: listingData.Title,
+        UserID: listingData.UserID,
+      }
+      const response = await listingsApi.create(body, "1");
+      console.log(response);
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+    } catch (error) {
+      console.error('Error creating listing:', error);
+    } finally {
+      setIsLoading(false);
     }
-    const response = await listingsApi.create(body, "1");
-    console.log(response);
   }
 
   // Tag selection handlers
@@ -226,134 +239,152 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         <h1 className="text-6xl font-semibold ml-4 pl-[2vh] pt-[2vh]">Create Listing</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Title and tags section */}
-        <div className="flex gap-4">
-          <div className="w-2/3 flex items-center gap-2">
-            <label htmlFor="title" className="block text-lg mb-2">
-              Listing Title:
+      {showSuccess ? (
+        <div className="text-center py-8">
+          <div className="text-green-500 text-2xl font-semibold mb-4">Listing created successfully!</div>
+          <div className="text-gray-500">Redirecting to homepage...</div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Title and tags section */}
+          <div className="flex gap-4">
+            <div className="w-2/3 flex items-center gap-2">
+              <label htmlFor="title" className="block text-lg mb-2">
+                Listing Title:
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Default Item"
+                className="w-3/5  text-black p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+              />
+            </div>
+            
+            {/* Selected tags display */}
+            <div className="w-1/3">
+              <label className="block text-lg mb-2">
+                Chosen Tags:
+              </label>
+              <div className="border rounded p-2 min-h-[40px]">
+                {selectedTags.map((tag) => (
+                  <span 
+                    key={tag} 
+                    onClick={() => removeTag(tag)} 
+                    className="cursor-pointer inline-block bg-[#2A9FD0] text-white text-sm px-2 py-1 rounded mr-1 mb-1"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Available tags selection */}
+            <div className="w-1/3">
+              <label className="block text-lg text-black mb-2">
+                Choose Tags
+              </label>
+              <div className="border rounded p-2 min-h-[40px]">
+                {availableTags.filter(tag => !selectedTags.includes(tag)).map((tag) => (
+                  <span 
+                    key={tag} 
+                    onClick={() => chooseTag(tag)} 
+                    className="cursor-pointer inline-block bg-gray-200 text-gray-800 text-sm px-2 py-1 rounded mr-1 mb-1 hover:bg-gray-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Description input */}
+          <div>
+            <label htmlFor="description" className="block text-lg mb-2">
+              Description:
             </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Default Item"
-              className="w-3/5  text-black p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your item..."
+              className="w-full h-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
             />
           </div>
-          
-          {/* Selected tags display */}
-          <div className="w-1/3">
+
+          {/* Price input */}
+          <div>
+            <label htmlFor="price" className="block text-lg mb-2">
+              Price:
+            </label>
+            <input
+              type="number"
+              id="price"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              className="w-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+            />
+          </div>
+
+          {/* Photo upload section */}
+          <div>
             <label className="block text-lg mb-2">
-              Chosen Tags:
+              Photos:
             </label>
-            <div className="border rounded p-2 min-h-[40px]">
-              {selectedTags.map((tag) => (
-                <span 
-                  key={tag} 
-                  onClick={() => removeTag(tag)} 
-                  className="cursor-pointer inline-block bg-[#2A9FD0] text-white text-sm px-2 py-1 rounded mr-1 mb-1"
+            <div className="flex gap-4">
+              <div className="w-1/2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <label
+                  htmlFor="photo-upload"
+                  className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50"
                 >
-                  {tag}
-                </span>
-              ))}
+                  <ArrowUpTrayIcon className="w-6 h-6" />
+                  <span>Upload Photos</span>
+                </label>
+              </div>
+              <div className="w-1/2">
+                {photos.length > 0 ? (
+                  <PhotoCarousel isFullscreen={isFullscreen} />
+                ) : (
+                  <div className="h-[50vh] bg-gray-100 rounded w-[50vh] flex items-center justify-center">
+                    <span className="text-gray-400">No photos uploaded</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Available tags selection */}
-          <div className="w-1/3">
-            <label className="block text-lg text-black mb-2">
-              Choose Tags
-            </label>
-            <div className="border rounded p-2 min-h-[40px]">
-              {availableTags.filter(tag => !selectedTags.includes(tag)).map((tag) => (
-                <span 
-                  key={tag} 
-                  onClick={() => chooseTag(tag)} 
-                  className="cursor-pointer inline-block bg-gray-200 text-gray-800 text-sm px-2 py-1 rounded mr-1 mb-1 hover:bg-gray-300"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Description input */}
-        <div>
-          <label htmlFor="description" className="block text-lg mb-2">
-            Description:
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe your item..."
-            className="w-full h-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
-          />
-        </div>
-
-        {/* Price input */}
-        <div>
-          <label htmlFor="price" className="block text-lg mb-2">
-            Price:
-          </label>
-          <input
-            type="number"
-            id="price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0.00"
-            className="w-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
-          />
-        </div>
-
-        {/* Photo upload section */}
-        <div>
-          <label className="block text-lg mb-2">
-            Photos:
-          </label>
-          <div className="flex gap-4">
-            <div className="w-1/2">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="hidden"
-                id="photo-upload"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50"
-              >
-                <ArrowUpTrayIcon className="w-6 h-6" />
-                <span>Upload Photos</span>
-              </label>
-            </div>
-            <div className="w-1/2">
-              {photos.length > 0 ? (
-                <PhotoCarousel isFullscreen={isFullscreen} />
+          {/* Submit button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="bg-[#2A9FD0] text-white px-6 py-3 rounded-lg hover:bg-[#2589B4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
               ) : (
-                <div className="h-[50vh] bg-gray-100 rounded w-[50vh] flex items-center justify-center">
-                  <span className="text-gray-400">No photos uploaded</span>
-                </div>
+                'Create Listing'
               )}
-            </div>
+            </button>
           </div>
-        </div>
-
-        {/* Submit button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-[#2A9FD0] text-white px-6 py-3 rounded-lg hover:bg-[#2589B4] transition-colors"
-          >
-            Create Listing
-          </button>
-        </div>
-      </form>
+        </form>
+      )}
     </div>
   );
 }

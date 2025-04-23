@@ -6,15 +6,18 @@
  * - Grid display of listings with images, titles, prices, and descriptions
  * - Filter sidebar with category and price range filters
  * - "Show My Listings" toggle to view only user's own listings
- * - Infinite scroll with "Load More" functionality
+ * - Load More functionality
  * - Responsive grid layout
+ * 
+ * Updated with recycling/green theme
  */
 
 import Listing from "./Listing"
-import { Dropdown } from "../Dropdown/Dropdown"
+import  { Dropdown } from "../Dropdown/Dropdown"
 import { useGlobalContext } from "@/Context/GlobalContext"
-import { useContext, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { listingsApi, Listing as ListingType } from "@/pages/api/listings";
+import { LeafIcon, FilterIcon, UserIcon } from "lucide-react";
 
 // Price range options for filtering
 interface PriceRange {
@@ -47,7 +50,6 @@ export default function ListingsHomepage() {
       try {
         setIsLoading(true);
         const data = await listingsApi.getAll();
-        console.log(data);
         setListings(data);
         setDisplayedListings(data.slice(0, itemsPerPage));
       } catch (err) {
@@ -81,12 +83,17 @@ export default function ListingsHomepage() {
     }
 
     // Then apply category and price filters
-    if (filters.length === 0) return true;
-    const hasMatchingCategory = listing.Category.some((category: string) => filters.includes(category));
-    const hasMatchingPriceRange = filters.some((filter: string) => {
-      const priceRange = priceRanges.find(range => range.label === filter);
-      if (priceRange) {
-        return parseFloat(listing.Price) >= priceRange.min && parseFloat(listing.Price) < priceRange.max;
+    if (!filters || Object.keys(filters).length === 0) return true;
+
+    // Check category filter
+    const hasMatchingCategory = listing.Category.some((category: string) => 
+      filters.categories?.includes(category)
+    );
+
+    // Check price range filter
+    const hasMatchingPriceRange = priceRanges.some((range) => {
+      if (filters.priceRanges?.includes(range.label)) {
+        return parseFloat(listing.Price) >= range.min && parseFloat(listing.Price) < range.max;
       }
       return false;
     });
@@ -99,43 +106,72 @@ export default function ListingsHomepage() {
 
   // Loading state
   if (isLoading) {
-    return <div className="min-h-screen pt-6 flex justify-center items-center">Loading...</div>;
+    return (
+      <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
+        <div className="flex flex-col items-center text-emerald-700">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-200 border-t-emerald-700"></div>
+          <p className="mt-4 font-medium">Loading listings...</p>
+        </div>
+      </div>
+    );
   }
 
   // Error state
   if (error) {
-    return <div className="min-h-screen pt-6 flex justify-center items-center text-red-500">Error: {error}</div>;
+    return (
+      <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
+        <div className="bg-white p-6 rounded-lg shadow-md text-red-500 max-w-md text-center">
+          <p className="text-xl font-medium">Error</p>
+          <p className="mt-2">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   // No listings found state
   if (filteredListings.length === 0) {
     return (
-      <div className="min-h-screen pt-6">
-        <div className="flex gap-8">
+      <div className="min-h-screen pt-20 bg-emerald-50">
+        <div className="flex gap-8 max-w-7xl mx-auto px-4">
           {/* Filter sidebar */}
-          <div className="w-64 shrink-0 pl-2">
-            <div className="sticky top-24 bg-white rounded-lg shadow-sm h-[calc(100vh-8rem)]">
-              <div className="p-6 border-b">
-                <h2 className="text-2xl font-semibold text-center">Filters</h2>
+          <div className="w-64 shrink-0">
+            <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
+              <div className="p-4 border-b bg-emerald-700 text-white">
+                <h2 className="text-xl font-semibold text-center flex items-center justify-center">
+                  <FilterIcon className="w-5 h-5 mr-2" />
+                  Filters
+                </h2>
               </div>
               <div className="p-4 h-full">
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={showMyListings}
                       onChange={() => setShowMyListings(!showMyListings)}
-                      className="form-checkbox h-5 w-5 text-blue-600"
+                      className="form-checkbox h-5 w-5 text-emerald-600 rounded"
                     />
-                    <span className="text-gray-700 font-medium">Show My Listings</span>
+                    <span className="text-gray-700 font-medium flex items-center">
+                      <UserIcon className="w-4 h-4 mr-1" />
+                      Show My Listings
+                    </span>
                   </label>
                 </div>
                 <Dropdown />
               </div>
             </div>
           </div>
-          <div className="flex-1 py-2 pr-4 max-w-[1400px] flex items-center justify-center">
-            <p className="text-gray-500 text-lg">No listings found matching your filters</p>
+          <div className="flex-1 py-6 pr-4 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <LeafIcon className="w-16 h-16 mx-auto text-emerald-300 mb-4" />
+              <p className="text-gray-600 text-lg">No listings found matching your filters</p>
+              <button 
+                onClick={() => setShowMyListings(false)}
+                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -144,24 +180,30 @@ export default function ListingsHomepage() {
 
   // Main listings grid view
   return (
-    <div className="min-h-screen pt-6">
-      <div className="flex gap-8">
+    <div className="min-h-screen pt-20 bg-emerald-50">
+      <div className="flex gap-8 max-w-7xl mx-auto px-4">
         {/* Filter sidebar */}
-        <div className="w-64 shrink-0 pl-2">
-          <div className="sticky top-24 bg-white rounded-lg shadow-sm h-[calc(100vh-8rem)]">
-            <div className="p-6 border-b">
-              <h2 className="text-2xl font-semibold text-center">Filters</h2>
+        <div className="w-64 shrink-0">
+          <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
+            <div className="p-4 border-b bg-emerald-700 text-white">
+              <h2 className="text-xl font-semibold text-center flex items-center justify-center">
+                <FilterIcon className="w-5 h-5 mr-2" />
+                Filters
+              </h2>
             </div>
             <div className="p-4">
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showMyListings}
                     onChange={() => setShowMyListings(!showMyListings)}
-                    className="form-checkbox h-5 w-5 text-blue-600"
+                    className="form-checkbox h-5 w-5 text-emerald-600 rounded"
                   />
-                  <span className="text-gray-700 font-medium">Show My Listings</span>
+                  <span className="text-gray-700 font-medium flex items-center">
+                    <UserIcon className="w-4 h-4 mr-1" />
+                    Show My Listings
+                  </span>
                 </label>
               </div>
               <Dropdown />
@@ -170,8 +212,8 @@ export default function ListingsHomepage() {
         </div>
 
         {/* Main content - listings grid */}
-        <div className="flex-1 py-2 pr-4 max-w-[1400px]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="flex-1 py-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredListings.map((listing: ListingType) => (
               <Listing
                 key={listing.ListingID}
@@ -181,17 +223,20 @@ export default function ListingsHomepage() {
                 desc={listing.Description}
                 image={listing.Images?.[0] || ""}
                 ListingID={listing.ListingID || ''}
+                UserID={listing.UserID}
               />
             ))}
           </div>
+          
           {/* Load more button */}
           {showLoadMore && (
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-10 mb-8">
               <button
                 onClick={loadMore}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                className="px-6 py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors flex items-center shadow-md"
               >
-                Load More
+                <span>Load More</span>
+                <LeafIcon className="ml-2 w-4 h-4" />
               </button>
             </div>
           )}
