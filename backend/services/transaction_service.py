@@ -1,9 +1,12 @@
 import firebase_admin
 from firebase_admin import credentials, db
+from typing import Dict, Any, List
+from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError
+from .account_service import get_acc
+from .listing_service import get_listing
 
-# get the database root
 def get_db_root():
-    # check if app exists, init if not
+    """Get the root of the Firebase database."""
     try:
         firebase_admin.get_app()
     except ValueError:
@@ -11,42 +14,74 @@ def get_db_root():
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://reuseu-e42b8-default-rtdb.firebaseio.com/'
         })
-    # get root ref
-    ref = db.reference('/')
-    return ref
+    return db.reference('/')
 
-ref = get_db_root()
+class TransactionService:
+    def __init__(self, db_ref=None):
+        """Initialize TransactionService with optional database reference for testability."""
+        self.ref = db_ref or get_db_root()
 
-#Inputs: dictionary account data of form:
-# {BuyerID': buyer_id,
-#'DateTransaction': date_transaction,
-#'ListingID': listing_id,
-#'Price': price,
-#'SellerID': seller_id}
+    def add_transaction(self, transaction_data: Dict[str, Any]) -> str:
+        """Add a transaction. Returns the ListingID."""
+        required = ['BuyerID', 'DateTransaction', 'ListingID', 'Price', 'SellerID']
+        for field in required:
+            if field not in transaction_data:
+                raise ValidationError(f"Missing field '{field}' in transaction_data.")
+        listing_id = str(transaction_data['ListingID'])
+        # validate referenced resources
+        try:
+            get_acc(str(transaction_data['BuyerID']))
+            get_acc(str(transaction_data['SellerID']))
+            get_listing(listing_id)
+        except NotFoundError as e:
+            raise e
+        except ServiceError as e:
+            raise DatabaseError(f"Failed to verify resources: {e}")
+        try:
+            self.ref.child('Transaction').child(listing_id).set(transaction_data)
+            return listing_id
+        except Exception as e:
+            raise DatabaseError(f"Failed to add transaction: {e}")
 
-# adds a transaction to the database using the dictionary above
-def add_transaction(transaction_data):
-    # notice we read the number of accounts here and increment by 1
-    new_key = transaction_data['ListingID']
-    ref.child('Transaction').child(str(new_key)).set(transaction_data)
+    def delete_transaction(self, listing_id: str) -> None:
+        """Delete a transaction by its ListingID."""
+        try:
+            tx_ref = self.ref.child('Transaction').child(str(listing_id))
+            if not tx_ref.get():
+                raise NotFoundError(f"Transaction for listing {listing_id} not found.")
+            tx_ref.delete()
+        except ServiceError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to delete transaction: {e}")
 
+    def get_transaction(self, listing_id: str) -> Dict[str, Any]:
+        """Get the transaction for a specific listing."""
+        try:
+            tx = self.ref.child('Transaction').child(str(listing_id)).get()
+            if not tx:
+                raise NotFoundError(f"Transaction for listing {listing_id} not found.")
+            return tx
+        except ServiceError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to get transaction: {e}")
 
-# delete a transaction in the database using listing id as the key
-def delete_transaction(listing_id):
-    ref.child('Transaction').child(str(listing_id)).delete()
+    def get_all_transactions(self) -> List[Dict[str, Any]]:
+        """Get all transactions in the database."""
+        try:
+            txs = self.ref.child('Transaction').get()
+            if not txs:
+                raise NotFoundError("No transactions found.")
+            return [t for t in txs.values() if t is not None]
+        except ServiceError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to get all transactions: {e}")
 
-# get the content of a transaction using the listing id as the parameter
-def get_transaction(listing_id):
-    transactions = ref.child('Transaction').get()
-    if not transactions:
-        print("no transactions found")
-        return
-    for transaction in transactions:
-        if transaction is not None:
-            for field, value in transaction.items():
-                if field == "ListingID" and int(value) == int(listing_id):
-                    print(transaction)
-                    return transaction
-    print("transaction not found")
-
-#get_transaction(3)
+# Default instance
+transaction_service = TransactionService()
+add_transaction = transaction_service.add_transaction
+delete_transaction = transaction_service.delete_transaction
+get_transaction = transaction_service.get_transaction
+get_all_transactions = transaction_service.get_all_transactions

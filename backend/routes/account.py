@@ -1,37 +1,32 @@
-from flask import Blueprint, request, jsonify
-from services.account_service import add_account, delete_acc, delete_acc_range
+from flask import Blueprint, jsonify, request
+from ..services import account_service
 
-accounts_bp = Blueprint('accounts', __name__)
+accounts_bp = Blueprint('accounts_bp', __name__)
 
-# api route to create an account
-@accounts_bp.route('', methods=['POST'])
+@accounts_bp.route('/<string:account_id>', methods=['GET'])
+def get_account(account_id):
+    account_data = account_service.get_acc(int(account_id))
+    if account_data:
+        return jsonify(account_data), 200
+    else:
+        return jsonify({"message": f"Account {account_id} not found"}), 404
+
+@accounts_bp.route('/', methods=['POST'])
 def create_account():
+    account_data = request.json
     try:
-        account_data = request.get_json()
-        add_account(account_data)
-        return jsonify({"message": "Account created successfully"}), 201
+        account_service.add_account(account_data)
+        return jsonify({
+            "message": "Account created successfully", 
+            "account_id": account_data.get('UserID')
+        }), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# api route to delete an account
-@accounts_bp.route('/<int:account_id>', methods=['DELETE'])
+@accounts_bp.route('/<string:account_id>', methods=['DELETE'])
 def delete_account(account_id):
     try:
-        delete_acc(account_id)
-        return jsonify({"message": "Account deleted successfully"}), 200
+        account_service.delete_acc(int(account_id))
+        return jsonify({"message": f"Account {account_id} deleted successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-# api route to delete accounts in a range
-@accounts_bp.route('/range', methods=['DELETE'])
-def delete_accounts_range():
-    try:
-        data = request.get_json()
-        min_id = data.get('min')
-        max_id = data.get('max')
-        if not min_id or not max_id:
-            return jsonify({"error": "min and max IDs are required"}), 400
-        delete_acc_range(min_id, max_id)
-        return jsonify({"message": "Accounts deleted successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400 

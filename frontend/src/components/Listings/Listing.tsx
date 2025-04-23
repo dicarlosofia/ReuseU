@@ -68,7 +68,7 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
         setIsRemoved(true);
         // Remove from listings after animation
         setTimeout(() => {
-          setListings((prevListings: any[]) => prevListings.filter((listing: any) => listing.ListingID !== ListingID));
+          setListings(listings.filter((listing: any) => listing.ListingID !== ListingID));
         }, 300); // Match this with the CSS transition duration
       }, 2000);
     } catch (error) {
