@@ -32,6 +32,7 @@ def get_account_listing(account_id):
 
 #request.json should return object of form:
 #{'Category': {1: 'Dinnerware', 2: 'Storage', 3: 'Above $500'}, 'CreateTime': '2025-04-08T21:11:00.569312Z', 'Description': 'Still in good condition, barely used.', 'Images': {7: 'image3.png'}, 'Price': '279.72', 'SellStatus': 1, 'Title': 'Vintage Leather Jacket', 'UserID': 412}
+#base64images
 @listings_bp.route('/', methods=['POST'])
 def create_listing():
     listing_data = request.json

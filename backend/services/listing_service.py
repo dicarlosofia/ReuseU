@@ -1,6 +1,8 @@
 import firebase_admin
 from firebase_admin import credentials, db
 from typing import Optional, Dict, Any, List
+
+from . import blob_storage
 from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError
 
 
@@ -42,6 +44,9 @@ class ListingService:
     def add_listing(self, listing_data: Dict[str, Any]) -> str:
         """Add a new listing. Returns the new ListingID."""
         try:
+            image = listing_data.pop('base64images')[0]
+            s3 = blob_storage.connect_to_blob_db_resource()
+            blob_storage.upload_file_to_bucket(s3, "test_image", listing_data['ListingID'], image)
             listings = self.ref.child('Listing').get()
             new_key = str(len(listings)) if listings else "1"
             listing_data['ListingID'] = new_key
