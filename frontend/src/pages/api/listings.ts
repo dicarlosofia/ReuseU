@@ -20,7 +20,8 @@ export const listingsApi = {
     const response = await fetch(`${API_BASE_URL}/listings`);
     if (!response.ok) throw new Error('Failed to fetch listings');
     const data = await response.json();
-    return data.listings;
+    console.log(data);
+    return data;
   },
 
   // Get a single listing by ID

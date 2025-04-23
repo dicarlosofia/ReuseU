@@ -35,9 +35,11 @@ export interface ListingData {
   SellStatus: number;
   Title: string;
   UserID: number;
+  Images: string[];
 }
 
 export default function CreateListing({ onSubmit }: CreateListingProps) {
+  
   const router = useRouter();
   const UserID = 8675309;
   // Form state management
@@ -57,6 +59,14 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
     'Kitchen', 'Books', 'Sports'
   ];
 
+ function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string); // base64 string
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
   // Handle back button click
   const handleBack = () => {
     router.back();
@@ -73,6 +83,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         SellStatus: listingData.SellStatus,
         Title: listingData.Title,
         UserID: listingData.UserID,
+        Images: listingData.Images
       }
       const response = await listingsApi.create(body, "1");
       console.log(response);
@@ -124,8 +135,13 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Convert all photos to base64
+    const imagePromises = photos.map(photo => fileToBase64(photo));
+    const base64Images = await Promise.all(imagePromises);
+    
     listingSubmit({
       Title: title,
       Description: description,
@@ -133,6 +149,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
       Category: selectedTags,
       UserID: UserID,
       SellStatus: 1,
+      Images: base64Images
     });
   };
 

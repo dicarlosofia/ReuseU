@@ -50,8 +50,15 @@ export default function ListingsHomepage() {
       try {
         setIsLoading(true);
         const data = await listingsApi.getAll();
-        setListings(data);
-        setDisplayedListings(data.slice(0, itemsPerPage));
+        console.log(data);
+        if (data) {
+          console.log(data);
+          setListings(data);
+          setDisplayedListings(data.slice(0, itemsPerPage));
+        } else {
+          setListings([]);
+          setDisplayedListings([]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch listings');
         console.error('Error fetching listings:', err);
@@ -102,7 +109,7 @@ export default function ListingsHomepage() {
   });
 
   // Only show load more button if we're not showing my listings
-  const showLoadMore = !showMyListings && displayedListings.length < listings.length;
+  const showLoadMore = !showMyListings && displayedListings.length < (listings?.length || 0);
 
   // Loading state
   if (isLoading) {
