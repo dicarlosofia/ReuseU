@@ -18,28 +18,28 @@ export interface Transaction {
 
 export const transactionsApi = {
   // Get all transactions for a user
-  getByUserId: async (userId: number, token: string) => {
+  getByUserId: async (userId: number) => {
     const response = await fetch(`${API_BASE_URL}/transactions/user/${userId}`, {
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch transactions');
     return response.json();
   },
 
   // Get a single transaction
-  getById: async (id: number, token: string) => {
+  getById: async (id: number) => {
     const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch transaction');
     return response.json();
   },
 
   // Create a new transaction
-  create: async (transaction: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>, token: string) => {
+  create: async (transaction: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     const response = await fetch(`${API_BASE_URL}/transactions`, {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(transaction),
     });
     if (!response.ok) throw new Error('Failed to create transaction');
@@ -47,10 +47,10 @@ export const transactionsApi = {
   },
 
   // Update transaction status
-  updateStatus: async (id: number, status: Transaction['status'], token: string) => {
+  updateStatus: async (id: number, status: Transaction['status']) => {
     const response = await fetch(`${API_BASE_URL}/transactions/${id}/status`, {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
     if (!response.ok) throw new Error('Failed to update transaction status');
@@ -58,9 +58,9 @@ export const transactionsApi = {
   },
 
   // Get transactions by listing ID
-  getByListingId: async (listingId: number, token: string) => {
+  getByListingId: async (listingId: number) => {
     const response = await fetch(`${API_BASE_URL}/transactions/listing/${listingId}`, {
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch listing transactions');
     return response.json();

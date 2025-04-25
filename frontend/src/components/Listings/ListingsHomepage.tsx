@@ -13,17 +13,17 @@
  */
 
 import Listing from "./Listing"
-import  { Dropdown } from "../Dropdown/Dropdown"
+import { Dropdown } from "../Dropdown/Dropdown"
 import { useGlobalContext } from "@/Context/GlobalContext"
 import { useEffect, useState } from "react"
-import { listingsApi, Listing as ListingType } from "@/pages/api/listings";
-import { LeafIcon, FilterIcon, UserIcon } from "lucide-react";
+import { listingsApi, Listing as ListingType } from "@/pages/api/listings"
+import { FilterIcon, UserIcon } from "lucide-react"
 
 // Price range options for filtering
 interface PriceRange {
-  min: number;
-  max: number;
-  label: string;
+  min: number
+  max: number
+  label: string
 }
 
 const priceRanges: PriceRange[] = [
@@ -31,87 +31,101 @@ const priceRanges: PriceRange[] = [
   { min: 10, max: 50, label: "$10 - $50" },
   { min: 50, max: 100, label: "$50 - $100" },
   { min: 100, max: 500, label: "$100 - $500" },
-  { min: 500, max: Infinity, label: "Above $500" }
-];
+  { min: 500, max: Infinity, label: "Above $500" },
+]
 
 export default function ListingsHomepage() {
-  const { filters, setListings, listings } = useGlobalContext();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [displayedListings, setDisplayedListings] = useState<ListingType[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showMyListings, setShowMyListings] = useState(false);
-  const itemsPerPage = 25;
-  const currentUserId = 8675309; // Set the user ID
+  const { filters, setListings, listings, user, setFilters } = useGlobalContext()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [displayedListings, setDisplayedListings] = useState<ListingType[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showMyListings, setShowMyListings] = useState(false)
+  const itemsPerPage = 25
+  const currentUserId = user?.uid
 
   // Fetch all listings on component mount
   useEffect(() => {
+    let isMounted = true
+
     const fetchListings = async () => {
       try {
-        setIsLoading(true);
-        const data = await listingsApi.getAll();
-        console.log(data);
-        if (data) {
-          console.log(data);
-          setListings(data);
-          setDisplayedListings(data.slice(0, itemsPerPage));
+        setIsLoading(true)
+        const token = user ? await user.getIdToken() : undefined
+        const data = await listingsApi.getAll(token)
+
+        if (!isMounted) return
+
+        if (Array.isArray(data)) {
+          setListings(data)
+          setDisplayedListings(data.slice(0, itemsPerPage))
         } else {
-          setListings([]);
-          setDisplayedListings([]);
+          setListings([])
+          setDisplayedListings([])
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch listings');
-        console.error('Error fetching listings:', err);
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to fetch listings")
+          console.error("Error fetching listings:", err)
+        }
       } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchListings();
-  }, []);
-
-  // Load more listings when "Load More" button is clicked
-  const loadMore = () => {
-    const nextPage = currentPage + 1;
-    const startIndex = 0;
-    const endIndex = nextPage * itemsPerPage;
-    const newListings = listings.slice(startIndex, endIndex);
-    setDisplayedListings(newListings);
-    setCurrentPage(nextPage);
-  };
-
-  // Filter listings based on selected filters and "Show My Listings" toggle
-  const filteredListings = (showMyListings ? listings : displayedListings).filter((listing: ListingType) => {
-    // First filter by user if showMyListings is true
-    if (showMyListings) {
-      if (String(listing.UserID) !== String(currentUserId)) {
-        return false;
+        if (isMounted) setIsLoading(false)
       }
     }
 
-    // Then apply category and price filters
-    if (!filters || Object.keys(filters).length === 0) return true;
+    fetchListings()
+    return () => {
+      isMounted = false
+    }
+  }, [user, setListings])
 
-    // Check category filter
-    const hasMatchingCategory = listing.Category.some((category: string) => 
-      filters.categories?.includes(category)
-    );
+  // Load more listings
+  const loadMore = () => {
+    const nextPage = currentPage + 1
+    const endIndex = nextPage * itemsPerPage
+    setDisplayedListings(listings.slice(0, endIndex))
+    setCurrentPage(nextPage)
+  }
 
-    // Check price range filter
-    const hasMatchingPriceRange = priceRanges.some((range) => {
-      if (filters.priceRanges?.includes(range.label)) {
-        return parseFloat(listing.Price) >= range.min && parseFloat(listing.Price) < range.max;
+  // Filtering logic
+  const filteredListings = (showMyListings ? listings : displayedListings).filter(
+    (listing: ListingType) => {
+      if (showMyListings && String(listing.UserID) !== String(currentUserId)) {
+        return false
       }
-      return false;
-    });
 
-    return hasMatchingCategory || hasMatchingPriceRange;
-  });
+      if (!filters || Object.keys(filters).length === 0) {
+        return true
+      }
 
-  // Only show load more button if we're not showing my listings
-  const showLoadMore = !showMyListings && displayedListings.length < (listings?.length || 0);
+      const hasMatchingCategory =
+        !filters.categories || filters.categories.length === 0
+          ? true
+          : listing.Category.some((cat) => cat && filters.categories.includes(cat))
 
-  // Loading state
+      const hasMatchingPriceRange =
+        !filters.priceRanges || filters.priceRanges.length === 0
+          ? true
+          : priceRanges.some((range) =>
+              filters.priceRanges.includes(range.label)
+                ? parseFloat(listing.Price) >= range.min &&
+                  parseFloat(listing.Price) < range.max
+                : false
+            )
+
+      if (
+        filters.categories?.length > 0 &&
+        filters.priceRanges?.length > 0
+      ) {
+        return hasMatchingCategory && hasMatchingPriceRange
+      }
+
+      return hasMatchingCategory || hasMatchingPriceRange
+    }
+  )
+
+  const showLoadMore = !showMyListings && displayedListings.length < (listings?.length || 0)
+
   if (isLoading) {
     return (
       <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
@@ -120,10 +134,9 @@ export default function ListingsHomepage() {
           <p className="mt-4 font-medium">Loading listings...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  // Error state
   if (error) {
     return (
       <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
@@ -132,15 +145,13 @@ export default function ListingsHomepage() {
           <p className="mt-2">{error}</p>
         </div>
       </div>
-    );
+    )
   }
 
-  // No listings found state
   if (filteredListings.length === 0) {
     return (
       <div className="min-h-screen pt-20 bg-emerald-50">
         <div className="flex gap-8 max-w-7xl mx-auto px-4">
-          {/* Filter sidebar */}
           <div className="w-64 shrink-0">
             <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
               <div className="p-4 border-b bg-emerald-700 text-white">
@@ -168,28 +179,25 @@ export default function ListingsHomepage() {
               </div>
             </div>
           </div>
-          <div className="flex-1 py-6 pr-4 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-md text-center">
-              <LeafIcon className="w-16 h-16 mx-auto text-emerald-300 mb-4" />
-              <p className="text-gray-600 text-lg">No listings found matching your filters</p>
-              <button 
-                onClick={() => setShowMyListings(false)}
-                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors"
+          <div className="flex-1">
+            <div className="bg-white p-8 rounded-lg shadow-sm text-center">
+              <p className="text-gray-500">No listings found matching your filters</p>
+              <button
+                onClick={() => setFilters({ categories: [], priceRanges: [] })}
+                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
-                Clear filters
+                Clear Filters
               </button>
             </div>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
-  // Main listings grid view
   return (
     <div className="min-h-screen pt-20 bg-emerald-50">
       <div className="flex gap-8 max-w-7xl mx-auto px-4">
-        {/* Filter sidebar */}
         <div className="w-64 shrink-0">
           <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
             <div className="p-4 border-b bg-emerald-700 text-white">
@@ -198,7 +206,7 @@ export default function ListingsHomepage() {
                 Filters
               </h2>
             </div>
-            <div className="p-4">
+            <div className="p-4 h-full">
               <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -218,37 +226,41 @@ export default function ListingsHomepage() {
           </div>
         </div>
 
-        {/* Main content - listings grid */}
-        <div className="flex-1 py-2">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredListings.map((listing: ListingType) => (
+        <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {filteredListings.map((listing) => (
               <Listing
                 key={listing.ListingID}
                 title={listing.Title}
                 price={parseFloat(listing.Price)}
-                tags={listing.Category || []}
+                tags={listing.Category}
                 desc={listing.Description}
-                image={listing.Images?.[0] || ""}
-                ListingID={listing.ListingID || ''}
+                image={
+                  typeof listing.Images?.[0] === "string"
+                    ? listing.Images[0]
+                    : Array.isArray(listing.base64images) &&
+                      typeof listing.base64images[0]?.data === "string"
+                    ? listing.base64images[0].data
+                    : ""
+                }
+                ListingID={listing.ListingID || ""}
                 UserID={listing.UserID}
               />
             ))}
           </div>
-          
-          {/* Load more button */}
+
           {showLoadMore && (
-            <div className="flex justify-center mt-10 mb-8">
+            <div className="mt-8 text-center">
               <button
                 onClick={loadMore}
-                className="px-6 py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors flex items-center shadow-md"
+                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
-                <span>Load More</span>
-                <LeafIcon className="ml-2 w-4 h-4" />
+                Load More
               </button>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

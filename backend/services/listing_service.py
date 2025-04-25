@@ -1,21 +1,29 @@
 import firebase_admin
 from firebase_admin import credentials, db
 from typing import Optional, Dict, Any, List
+import logging
+import base64
 
 from . import blob_storage
 from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 #get the root of the database
 def get_db_root():
     """Get the root of the Firebase database."""
     try:
+        logger.debug("Attempting to get existing Firebase app")
         firebase_admin.get_app()
     except ValueError:
+        logger.debug("No existing Firebase app found, initializing new app")
         cred = credentials.Certificate("pk.json")
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://reuseu-e42b8-default-rtdb.firebaseio.com/'
         })
+    logger.debug("Returning database root reference")
     return db.reference('/')
 
 
@@ -39,20 +47,58 @@ That way, if the image is the default name, each image will still be unique)
 class ListingService:
     def __init__(self, db_ref=None):
         """Initialize ListingService with optional database reference for testability."""
+        logger.debug("Initializing ListingService")
         self.ref = db_ref or get_db_root()
+        logger.debug("Database reference obtained")
 
     def add_listing(self, listing_data: Dict[str, Any]) -> str:
         """Add a new listing. Returns the new ListingID."""
         try:
-            image = listing_data.pop('base64images')[0]
+            logger.debug(f"Starting add_listing with data: {listing_data}")
+            
+            # Extract and process images
+            logger.debug("Extracting images from listing data")
+            if 'Images' not in listing_data:
+                logger.error("No 'Images' field found in listing data")
+                raise ValidationError("Listing must include at least one image")
+                
+            images = listing_data.pop('Images')
+            if not images or len(images) == 0:
+                logger.error("No images provided in the listing")
+                raise ValidationError("Listing must include at least one image")
+
+            logger.debug("Successfully extracted first image")
+            
+            # Connect to blob storage
+            logger.debug("Connecting to blob storage")
             s3 = blob_storage.connect_to_blob_db_resource()
-            blob_storage.upload_file_to_bucket(s3, "test_image", listing_data['ListingID'], image)
+            logger.debug("Successfully connected to blob storage")
+            
+            # Get new listing ID
+            logger.debug("Getting current listings to determine new ID")
             listings = self.ref.child('Listing').get()
             new_key = str(len(listings)) if listings else "1"
+            logger.debug(f"Generated new listing ID: {new_key}")
+            
+            # Add listing ID to data
             listing_data['ListingID'] = new_key
+            logger.debug(f"Added ListingID to data: {listing_data}")
+            
+            # Upload image to blob storage
+            logger.debug(f"Uploading image to blob storage with key: {new_key}")
+            blob_storage.upload_files_to_bucket(s3, listing_data['ListingID'], images)
+            logger.debug("Successfully uploaded image to blob storage")
+            
+            # Save listing to database
+            logger.debug(f"Saving listing to database with key: {new_key}")
             self.ref.child('Listing').child(new_key).set(listing_data)
+            logger.debug("Successfully saved listing to database")
+            
+            logger.info(f"Successfully added new listing with ID: {new_key}")
             return new_key
+            
         except Exception as e:
+            logger.error(f"Error in add_listing: {str(e)}", exc_info=True)
             raise DatabaseError(f"Failed to add listing: {e}")
 
     '''
@@ -121,9 +167,20 @@ class ListingService:
             all_listings = []
             if not listings:
                 raise NotFoundError("No listings found.")
+            s3 = blob_storage.connect_to_blob_db_resource()
             for listing in listings:
                 if listing is not None:
                     all_listings.append(listing)
+                    listing_id_str = listing['ListingID']
+                    images = blob_storage.get_images_from_bucket(s3, listing_id_str)
+                    if not images:
+                        pass
+                    else:
+                        base64_images = []
+                        for key, data in images:
+                            base64_str = base64.b64encode(data).decode('utf-8')
+                            base64_images.append({'key': key, 'data': base64_str})
+                        listing["base64images"] = base64_images
             return all_listings
         except ServiceError:
             raise

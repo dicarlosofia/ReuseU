@@ -11,10 +11,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    } else if (!loading && user && !user.email?.endsWith('.edu')) {
-      router.push('/login?error=edu-email-required');
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (!user.email?.endsWith('.edu')) {
+        router.push('/login?error=edu-email-required');
+      }
     }
   }, [user, loading, router]);
 

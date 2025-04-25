@@ -1,4 +1,5 @@
 pk.json
+pk2.json
 .venv
 .DS_Store
 
@@ -176,4 +177,4 @@ cython_debug/
 .ruff_cache/
 
 # PyPI configuration file
-.pypirc
+.pypircnode_modules/

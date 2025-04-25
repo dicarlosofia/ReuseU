@@ -1,13 +1,15 @@
 import datetime
 import random
+import os
+import sys
 
 import firebase_admin
 from firebase_admin import credentials, db
-from account_service import add_account, delete_acc
-from listing_service import add_listing, del_listing
-from review_service import add_review, del_review
-from transaction_service import add_transaction, delete_transaction
-from message_service import add_message
+from .account_service import add_account, delete_acc
+from .listing_service import add_listing, del_listing, get_all_listings_total
+from .review_service import add_review, del_review
+from .transaction_service import add_transaction, delete_transaction
+from .message_service import add_message, delete_chat
 
 INTRO_MSG = '''
 Welcome to the ReuseU Backend Testing Suite!
@@ -27,7 +29,7 @@ Please select a component to test:
 (12): Delete Reviews
 (13): Make Test Messages
 (14): See All Messages
-(15): Delete Messages
+(15): Delete Chat(s)
 (16): Exit
 Entry: '''
 
@@ -340,7 +342,8 @@ def generate_random_listing():
 
 # prints all the listings in the database
 def print_all_listings():
-    listings = ref.child('Listing').get()
+    listings = get_all_listings_total()
+    #listings = ref.child('Listing').get()
     if not listings:
         print("no listings found")
         return
@@ -471,76 +474,101 @@ database.
 '''          
 def intro_menu():
     while (user_input := input(INTRO_MSG)) != "16":
+        # ---Accounts Testing---
         if user_input == "1":
+            # Make n accounts
             num_accts = int(input("Enter amt. of test accounts to make: "))
             load_dummy_accounts(num_accts)
             print(f"{num_accts} accounts loaded. Navigate to database to see additions.")
             exit_testing_program()
         elif user_input == "2":
+            # Print all existing accounts
             print_all_accounts()
             exit_testing_program()
         elif user_input == "3":
+            # Delete n->m accounts
             min_id = int(input("Enter min account id delete range: "))
             max_id = int(input("Enter max account id delete range: "))
             delete_acc_range(min_id,max_id)
             print(f"Account ids {min_id} though {max_id} were deleted. Navigate to database to see additions.")
             exit_testing_program()
+        # ---Transactions Testing---
         elif user_input == "4":
+            # Make n transactions
             num_accts = int(input("Enter amt. of transactions to make: "))
             load_dummy_transactions(1,num_accts)
             print(f"{num_accts} transaction loaded. Navigate to database to see additions.")
             exit_testing_program()
             pass
         elif user_input == "5":
+            # Print all transactions
             print_all_transactions()
             exit_testing_program()
             pass
         elif user_input == "6":
+            # Delete n->m transactions
             min_id = int(input("Enter min account id delete range for transactions: "))
             max_id = int(input("Enter max account id delete range for transactions: "))
             delete_transaction_range(min_id, max_id)
             print(f"Listings ids {min_id} though {max_id} were deleted in the transaction table. Navigate to database to see additions.")
             exit_testing_program()
+        # ---Listings Testing---
         elif user_input == "7":
+            # Make n listings
             num_listings = int(input("Enter amt. of test listings to make: "))
             load_dummy_listings(num_listings)
             print(f"{num_listings} listings loaded. Navigate to database to see additions.")
             exit_testing_program()
         elif user_input == "8":
+            # Print all existing listings
             print_all_listings()
             exit_testing_program()
         elif user_input == "9":
+            # Delete n->m listings
             min_id = int(input("Enter min listing id delete range for listings: "))
             max_id = int(input("Enter max listing id delete range for listings: "))
             delete_listings_range(min_id, max_id)
             print(f"Listing ids {min_id} though {max_id} were deleted in the listings table. Navigate to database to see additions.")
             exit_testing_program()
+        # ---Reviews Testing---
         elif user_input == "10":
+            # Make n reviews
             num_reviews = int(input("Enter amt. of test reviews to make: "))
             load_dummy_reviews(num_reviews)
             print(f"{num_reviews} reviews loaded. Navigate to database to see additions.")
             exit_testing_program()
         elif user_input == "11":
+            # Print all reviews
             print_all_reviews()
             exit_testing_program()
         elif user_input == "12":
+            # Delete n->m reviews
             min_id = int(input("Enter min listing id delete range for reviews: "))
             max_id = int(input("Enter max listing id delete range for reviews: "))
             delete_reviews_range(min_id, max_id)
             print(
                 f"Listing ids {min_id} though {max_id} were deleted in the reviews table. Navigate to database to see additions.")
+        # ---Messages testing---
         elif user_input == "13":
+            # Load n messages
             num_chats = int(input("Enter amt. of messages to make: "))
             load_dummy_messages(num_chats)
             print(f"{num_chats} message(s) loaded. Navigate to database to see additions.")
             exit_testing_program()
         elif user_input == "14":
-            # TODO: add messages suite testing functions
+            # Print all chats
+            print_all_messages()
+            exit_testing_program()
             pass
         elif user_input == "15":
-            # TODO: add messages suite testing functions
+            # Delete chats based on Listing ID
+            listing_choice = int(input("Enter listing ID to delete chat for: "))
+            delete_chat(listing_choice)
+            print(f"Chat for listing id {listing_choice} was deleted. Navigate to database to see additions.")
+            exit_testing_program()
             pass
         else:
+            # Invalid Input Handling
             print("Invalid input. Please try again.\n")
             exit_testing_program()
             
@@ -548,16 +576,19 @@ def intro_menu():
 A small function to help with exiting the program.
 '''
 def exit_testing_program():
+    # Get user input
     yes_or_no = input("\nWould you like to continue testing the database?\nEnter 'Y' for yes or 'N' to exit: ")
-    if yes_or_no == "Y":
+    format_y_n = yes_or_no.lower() #< so that it doesn't matter if the user enters 'Y' or 'y'
+    # Make sure that the user can enter both uppercase & lowercase
+    if format_y_n == "y":
         print("Continuing on!\n")
-    elif yes_or_no == "N":
+    elif format_y_n == "n":
         curr_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("\n\nTesting session ended at", curr_time)
         exit()
     else: 
         print("Invalid input. Continuing...\n")
         
-#intro_menu()
+intro_menu()
 #print(generate_random_listing())
-print(generate_random_review())
+#print(generate_random_review())

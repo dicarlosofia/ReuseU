@@ -76,6 +76,9 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const listingSubmit = async (listingData: ListingData) => {
     setIsLoading(true);
     try {
+      console.log('Starting listing submission...');
+      console.log('Listing data:', listingData);
+      
       const body = {
         Category: listingData.Category,
         Description: listingData.Description,
@@ -85,14 +88,21 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         UserID: listingData.UserID,
         Images: listingData.Images
       }
+      console.log('Request body:', body);
+      
       const response = await listingsApi.create(body, "1");
-      console.log(response);
+      console.log('Server response:', response);
+      
       setShowSuccess(true);
       setTimeout(() => {
         router.push('/');
       }, 1500);
     } catch (error) {
       console.error('Error creating listing:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
       setIsLoading(false);
     }
@@ -137,12 +147,17 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted');
+    console.log('Current photos:', photos);
     
     // Convert all photos to base64
     const imagePromises = photos.map(photo => fileToBase64(photo));
-    const base64Images = await Promise.all(imagePromises);
+    console.log('Starting base64 conversion for', imagePromises.length, 'photos');
     
-    listingSubmit({
+    const base64Images = await Promise.all(imagePromises);
+    console.log('Base64 conversion complete. Number of images:', base64Images.length);
+    
+    const listingData = {
       Title: title,
       Description: description,
       Price: price,
@@ -150,7 +165,10 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
       UserID: UserID,
       SellStatus: 1,
       Images: base64Images
-    });
+    };
+    console.log('Prepared listing data:', listingData);
+    
+    listingSubmit(listingData);
   };
 
   // Photo carousel component for image preview

@@ -34,6 +34,15 @@ export interface ListingProps {
   UserID: number;
 }
 
+// Helper to ensure image src is a valid data URL
+function getImageSrc(image?: string): string {
+  if (!image || typeof image !== 'string') return '';
+  // If already a data URL, return as is
+  if (image.startsWith('data:image/')) return image;
+  // Default to jpeg; you may want to detect type more robustly
+  return `data:image/jpeg;base64,${image}`;
+}
+
 export default function Listing({ title, price, tags, desc, image, ListingID, UserID }: ListingProps) {
   const router = useRouter();
   const { listings, setTitle, setListings } = useGlobalContext();
@@ -59,7 +68,7 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await listingsApi.delete(ListingID, "1"); // Add auth token
+      await listingsApi.delete(ListingID);
       setShowDeleteSuccess(true);
       // Wait for the success message to show
       setTimeout(() => {
@@ -90,7 +99,7 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
       )}
       {/* Image container */}
       <div className="w-1/4 aspect-square bg-gray-100 rounded-lg">
-        {image && <img src={image} alt={title} className="w-full h-full object-cover rounded-lg" />}
+        {image && <img src={getImageSrc(image)} alt={title} className="w-full h-full object-cover rounded-lg" />}
       </div>
 
       {/* Content container */}

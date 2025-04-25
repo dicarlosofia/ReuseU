@@ -7,20 +7,43 @@ interface Filters {
   priceRanges: string[];
 }
 
+interface CategoryGroup {
+  name: string;
+  subcategories: string[];
+}
+
 export function Dropdown() {
   const { filters, setFilters } = useGlobalContext();
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
   const [isPriceOpen, setIsPriceOpen] = useState(true);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
-  const categories = [
-    "Electronics", 
-    "Furniture", 
-    "Clothing", 
-    "Books", 
-    "Home Decor", 
-    "Kitchen", 
-    "Sports", 
-    "Toys"
+  // Main categories with their subcategories
+  const categoryGroups: CategoryGroup[] = [
+    {
+      name: "Electronics",
+      subcategories: ["Laptops", "Phones", "Tablets", "TVs"]
+    },
+    {
+      name: "Furniture",
+      subcategories: ["Tables", "Chairs", "Desks", "Beds", "Storage"]
+    },
+    {
+      name: "Clothing",
+      subcategories: ["Tops", "Bottoms", "Dresses", "Shirts"]
+    },
+    {
+      name: "Home & Kitchen",
+      subcategories: ["Appliances", "Cookware", "Dinnerware", "Utensils"]
+    },
+    {
+      name: "Arts & Crafts",
+      subcategories: ["Art", "Crafts", "Books"]
+    },
+    {
+      name: "Other",
+      subcategories: ["Other"]
+    }
   ];
 
   const priceRanges = [
@@ -85,18 +108,38 @@ export function Dropdown() {
         {isCategoryOpen && (
           <div className="p-3">
             <div className="space-y-2">
-              {categories.map((category) => (
-                <label key={category} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters?.categories?.includes(category) || false}
-                    onChange={() => handleCategoryToggle(category)}
-                    className="form-checkbox h-4 w-4 text-emerald-600 rounded"
-                  />
-                  <span className={filters?.categories?.includes(category) ? "text-emerald-700" : "text-gray-600"}>
-                    {category}
-                  </span>
-                </label>
+              {categoryGroups.map((group) => (
+                <div key={group.name} className="border-b border-emerald-100 last:border-0 pb-2 last:pb-0">
+                  <button
+                    className="flex items-center justify-between w-full p-2 hover:bg-emerald-50 rounded-lg transition-colors"
+                    onClick={() => setExpandedCategory(expandedCategory === group.name ? null : group.name)}
+                  >
+                    <span className="font-medium text-emerald-700">{group.name}</span>
+                    {expandedCategory === group.name ? (
+                      <ChevronUpIcon className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <ChevronDownIcon className="h-4 w-4 text-emerald-600" />
+                    )}
+                  </button>
+                  
+                  {expandedCategory === group.name && (
+                    <div className="pl-4 mt-2 space-y-1">
+                      {group.subcategories.map((subcategory) => (
+                        <label key={subcategory} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={filters?.categories?.includes(subcategory) || false}
+                            onChange={() => handleCategoryToggle(subcategory)}
+                            className="form-checkbox h-4 w-4 text-emerald-600 rounded"
+                          />
+                          <span className={filters?.categories?.includes(subcategory) ? "text-emerald-700" : "text-gray-600"}>
+                            {subcategory}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
