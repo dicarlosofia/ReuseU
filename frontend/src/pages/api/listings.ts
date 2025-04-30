@@ -9,7 +9,7 @@ export interface Listing {
   Category: string[]
   Images?: string[]
   base64images?: { data: string; key?: string }[]
-  UserID: number
+  UserID: string
   SellStatus: number
   CreateTime?: string
 }
@@ -17,11 +17,29 @@ export interface Listing {
 export const listingsApi = {
   // Get all listings with optional auth
   getAll: async (token?: string) => {
-    const response = await fetch(`${API_BASE_URL}/listings/`, {
-      headers: getAuthHeaders(token),
-    })
-    if (!response.ok) throw new Error('Failed to fetch listings')
-    return response.json()
+    try {
+      console.log('Fetching listings with token:', token ? 'present' : 'not present')
+      const response = await fetch(`${API_BASE_URL}/listings/`, {
+        headers: getAuthHeaders(token),
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Failed to fetch listings:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        throw new Error(`Failed to fetch listings: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('Successfully fetched listings:', data.length)
+      return data
+    } catch (error) {
+      console.error('Error in getAll:', error)
+      throw error
+    }
   },
 
   // Get a single listing by ID
@@ -30,7 +48,9 @@ export const listingsApi = {
       headers: getAuthHeaders(token),
     })
     if (!response.ok) throw new Error('Failed to fetch listing')
-    return response.json()
+    const data = response.json();
+    console.log(data);
+    return data;
   },
 
   // Create a new listing

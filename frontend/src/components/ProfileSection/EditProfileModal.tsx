@@ -4,8 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (profileData: ProfileData) => void;
   initialData: ProfileData;
+  onSave: (profileData: ProfileData) => Promise<void>;
 }
 
 interface ProfileData {
@@ -16,21 +16,29 @@ interface ProfileData {
   aboutMe: string;
 }
 
-const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, initialData, onSave }) => {
   const [formData, setFormData] = useState<ProfileData>(initialData);
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    try {
+      setSaving(true);
+      await onSave(formData);  // ✅ Pass edited form back to parent
+      onClose();               // ✅ Then close modal
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -122,18 +130,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200 flex items-center gap-2"
+              disabled={saving}
+              className={`px-4 py-2 text-sm font-medium text-white ${saving ? "bg-green-400" : "bg-green-600 hover:bg-green-700"} rounded-md transition-colors duration-200 flex items-center gap-2`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Save Changes
+              {saving ? (
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
 
 export default EditProfileModal;

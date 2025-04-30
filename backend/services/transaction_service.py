@@ -21,6 +21,7 @@ class TransactionService:
         """Initialize TransactionService with optional database reference for testability."""
         self.ref = db_ref or get_db_root()
 
+    #Add a transaction when a listing gets resolved
     def add_transaction(self, transaction_data: Dict[str, Any]) -> str:
         """Add a transaction. Returns the ListingID."""
         required = ['BuyerID', 'DateTransaction', 'ListingID', 'Price', 'SellerID']
@@ -43,6 +44,7 @@ class TransactionService:
         except Exception as e:
             raise DatabaseError(f"Failed to add transaction: {e}")
 
+    #Delete a transaction too free space in db
     def delete_transaction(self, listing_id: str) -> None:
         """Delete a transaction by its ListingID."""
         try:
@@ -55,6 +57,7 @@ class TransactionService:
         except Exception as e:
             raise DatabaseError(f"Failed to delete transaction: {e}")
 
+    #From a listing id, get the particular transaction
     def get_transaction(self, listing_id: str) -> Dict[str, Any]:
         """Get the transaction for a specific listing."""
         try:
@@ -67,6 +70,7 @@ class TransactionService:
         except Exception as e:
             raise DatabaseError(f"Failed to get transaction: {e}")
 
+    #Get all transaction in db regardless of listingid
     def get_all_transactions(self) -> List[Dict[str, Any]]:
         """Get all transactions in the database."""
         try:

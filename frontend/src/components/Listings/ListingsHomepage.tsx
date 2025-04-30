@@ -38,42 +38,88 @@ export default function ListingsHomepage() {
   const { filters, setListings, listings, user, setFilters } = useGlobalContext()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [displayedListings, setDisplayedListings] = useState<ListingType[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showMyListings, setShowMyListings] = useState(false)
   const itemsPerPage = 25
-  const currentUserId = user?.uid
+  const currentUserId = user ? user.uid : "";
 
   // Fetch all listings on component mount
   useEffect(() => {
     let isMounted = true
+    let retryCount = 0
+    const maxRetries = 3
 
     const fetchListings = async () => {
       try {
         setIsLoading(true)
-        const token = user ? await user.getIdToken() : undefined
-        const data = await listingsApi.getAll(token)
-
-        if (!isMounted) return
-
-        if (Array.isArray(data)) {
-          setListings(data)
-          setDisplayedListings(data.slice(0, itemsPerPage))
+        setError(null)
+        
+        // Wait for user to be available if we're logged in
+        if (user) {
+          try {
+            // Add a small delay to allow token to be ready
+            await new Promise(resolve => setTimeout(resolve, 500))
+            const token = await user.getIdToken()
+            console.log('Got token, fetching listings...')
+            const data = await listingsApi.getAll(token)
+            
+            if (!isMounted) return
+            
+            if (Array.isArray(data)) {
+              setListings(data)
+            } else {
+              setListings([])
+            }
+          } catch (tokenError) {
+            console.error('Error getting token:', tokenError)
+            // If token fetch fails, try without token
+            const data = await listingsApi.getAll()
+            
+            if (!isMounted) return
+            
+            if (Array.isArray(data)) {
+              setListings(data)
+            } else {
+              setListings([])
+            }
+          }
         } else {
-          setListings([])
-          setDisplayedListings([])
+          // If not logged in, fetch without token
+          const data = await listingsApi.getAll()
+          
+          if (!isMounted) return
+          
+          if (Array.isArray(data)) {
+            setListings(data)
+          } else {
+            setListings([])
+          }
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : "Failed to fetch listings")
           console.error("Error fetching listings:", err)
+          // Don't show error for 401s during initial load
+          if (err instanceof Error && err.message.includes('401')) {
+            console.log('Ignoring 401 during initial load')
+            return
+          }
+          setError(err instanceof Error ? err.message : "Failed to fetch listings")
+          
+          // Retry logic for initial fetch
+          if (retryCount < maxRetries) {
+            retryCount++
+            console.log(`Retrying fetch (${retryCount}/${maxRetries})...`)
+            setTimeout(fetchListings, 1000 * retryCount) // Exponential backoff
+          }
         }
       } finally {
         if (isMounted) setIsLoading(false)
       }
     }
 
-    fetchListings()
+    // Add a small initial delay before first fetch
+    setTimeout(fetchListings, 1000)
+    
     return () => {
       isMounted = false
     }
@@ -81,50 +127,49 @@ export default function ListingsHomepage() {
 
   // Load more listings
   const loadMore = () => {
-    const nextPage = currentPage + 1
-    const endIndex = nextPage * itemsPerPage
-    setDisplayedListings(listings.slice(0, endIndex))
-    setCurrentPage(nextPage)
+    setCurrentPage(prev => prev + 1)
   }
 
   // Filtering logic
-  const filteredListings = (showMyListings ? listings : displayedListings).filter(
-    (listing: ListingType) => {
-      if (showMyListings && String(listing.UserID) !== String(currentUserId)) {
-        return false
-      }
-
-      if (!filters || Object.keys(filters).length === 0) {
-        return true
-      }
-
-      const hasMatchingCategory =
-        !filters.categories || filters.categories.length === 0
-          ? true
-          : listing.Category.some((cat) => cat && filters.categories.includes(cat))
-
-      const hasMatchingPriceRange =
-        !filters.priceRanges || filters.priceRanges.length === 0
-          ? true
-          : priceRanges.some((range) =>
-              filters.priceRanges.includes(range.label)
-                ? parseFloat(listing.Price) >= range.min &&
-                  parseFloat(listing.Price) < range.max
-                : false
-            )
-
-      if (
-        filters.categories?.length > 0 &&
-        filters.priceRanges?.length > 0
-      ) {
-        return hasMatchingCategory && hasMatchingPriceRange
-      }
-
-      return hasMatchingCategory || hasMatchingPriceRange
+  const filteredListings = listings.filter((listing: ListingType) => {
+    // First check if we're showing only user's listings
+    if (showMyListings && String(listing.UserID) !== currentUserId) {
+      return false
     }
-  )
 
-  const showLoadMore = !showMyListings && displayedListings.length < (listings?.length || 0)
+    // Then apply other filters
+    if (!filters || Object.keys(filters).length === 0) {
+      return true
+    }
+
+    const hasMatchingCategory =
+      !filters.categories || filters.categories.length === 0
+        ? true
+        : listing.Category.some((cat) => cat && filters.categories.includes(cat))
+
+    const hasMatchingPriceRange =
+      !filters.priceRanges || filters.priceRanges.length === 0
+        ? true
+        : priceRanges.some((range) =>
+            filters.priceRanges.includes(range.label)
+              ? parseFloat(listing.Price) >= range.min &&
+                parseFloat(listing.Price) < range.max
+              : false
+          )
+
+    if (filters.categories?.length > 0 && filters.priceRanges?.length > 0) {
+      return hasMatchingCategory && hasMatchingPriceRange
+    }
+
+    return hasMatchingCategory || hasMatchingPriceRange
+  })
+
+  // Only apply pagination if we're not showing user's listings
+  const displayedListings = showMyListings 
+    ? filteredListings 
+    : filteredListings.slice(0, currentPage * itemsPerPage)
+
+  const showLoadMore = !showMyListings && displayedListings.length < filteredListings.length
 
   if (isLoading) {
     return (
@@ -212,7 +257,10 @@ export default function ListingsHomepage() {
                   <input
                     type="checkbox"
                     checked={showMyListings}
-                    onChange={() => setShowMyListings(!showMyListings)}
+                    onChange={() => {
+                      setShowMyListings(!showMyListings)
+                      setCurrentPage(1) // Reset pagination when toggling
+                    }}
                     className="form-checkbox h-5 w-5 text-emerald-600 rounded"
                   />
                   <span className="text-gray-700 font-medium flex items-center">
@@ -228,7 +276,7 @@ export default function ListingsHomepage() {
 
         <div className="flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredListings.map((listing) => (
+            {displayedListings.map((listing) => (
               <Listing
                 key={listing.ListingID}
                 title={listing.Title}

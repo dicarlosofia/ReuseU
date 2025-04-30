@@ -9,11 +9,15 @@ export interface Message {
 }
 
 export interface AccountData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  birthday: string;
+  UserID: string;
+  First_Name: string;
+  Last_Name: string;
+  School: string;
+  Username: string;
+  dateTime_creation: string;
+  Email: string;
+  Pronouns: string;
+  AboutMe: string;
 }
 
 export interface Chat {
@@ -27,29 +31,40 @@ export interface Chat {
 }
 
 export const accountsApi = {
-    getAccount: async (accountId: string, token: string) => {
-        const response = await fetch(`${API_BASE_URL}/accounts/${accountId}`, {
-          headers: getAuthHeaders(token),
-        });
-        if(!response.ok) throw new Error("Failed to fetch account");
-        return response.json();
-    },
-    createAccount: async(accountData: AccountData, token: string) => {
-      const response = await fetch (`${API_BASE_URL}/accounts/`,{
-        method: 'POST',
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(accountData),
-      })
-      if(!response.ok) throw new Error("Failed to create account");
-      return response.json();
-    },
-    delete: async (id: string, token?: string) => {
-      const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) throw new Error('Failed to delete listing');
-      return response.json();
-    },
+  getAccount: async (accountId: string, token: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${accountId}`, {
+      headers: getAuthHeaders(token),
+    });
+    if (!response.ok) throw new Error("Failed to fetch account");
+    return response.json();
+  },
 
-  }
+  createAccount: async (accountData: AccountData, token: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/`, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(accountData),
+    });
+    if (!response.ok) throw new Error("Failed to create account");
+    return response.json();
+  },
+
+  delete: async (id: string, token?: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+    if (!response.ok) throw new Error('Failed to delete listing');
+    return response.json();
+  },
+
+  updateAccount: async (accountId: string, updateData: Partial<AccountData>, token: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${accountId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(updateData),
+    });
+    if (!response.ok) throw new Error("Failed to update account");
+    return response.json();
+  },
+};

@@ -26,10 +26,10 @@ export interface FullListingProps {
   price: number;
   tags: string[];
   desc: string;
-  image: string;
+  image: { data: string; key?: string };
   sellerId: string;
   listingId?: string;
-  additionalImages?: string[];
+  additionalImages?: { data: string; key?: string }[];
 }
 
 export default function FullListing({
@@ -51,7 +51,11 @@ export default function FullListing({
   const [isRemoved, setIsRemoved] = useState(false);
   const currentUserId = user?.uid ? parseInt(user.uid) : null;
 
-  const allImages = [image, ...(additionalImages || [])];
+  // Convert base64 images to data URLs
+  const allImages = [
+    `data:image/jpeg;base64,${image.data}`,
+    ...(additionalImages?.map(img => `data:image/jpeg;base64,${img.data}`) || [])
+  ];
 
   const handleBackClick = () => router.back();
 
@@ -148,7 +152,7 @@ export default function FullListing({
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {tags.map((tag, index) => (
+              {Array.isArray(tags) && tags.map((tag, index) => (
                 <span
                   key={index}
                   className="bg-gray-100 hover:bg-emerald-100 text-gray-700 text-xs font-medium px-3 py-1 rounded-full transition-colors duration-300"

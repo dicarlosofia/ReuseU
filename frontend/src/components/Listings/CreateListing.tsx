@@ -20,6 +20,7 @@ import { ArrowUpTrayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ArrowsPo
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { listingsApi } from '@/pages/api/listings';
+import { useGlobalContext } from '@/Context/GlobalContext';
 
 // Props interface for the CreateListing component
 interface CreateListingProps {
@@ -34,14 +35,13 @@ export interface ListingData {
   Price: string;
   SellStatus: number;
   Title: string;
-  UserID: number;
+  UserID: string;
   Images: string[];
 }
 
 export default function CreateListing({ onSubmit }: CreateListingProps) {
   
   const router = useRouter();
-  const UserID = 8675309;
   // Form state management
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,8 +51,10 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useGlobalContext();
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const UserID = user ? user.uid : "";
   // Available category tags for selection
   const availableTags = [
     'Electronics', 'Furniture', 'Clothing',
@@ -78,14 +80,16 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
     try {
       console.log('Starting listing submission...');
       console.log('Listing data:', listingData);
-      
+      if(!UserID){
+        console.error("no userID bruh");
+      }
       const body = {
         Category: listingData.Category,
         Description: listingData.Description,
         Price: listingData.Price,
         SellStatus: listingData.SellStatus,
         Title: listingData.Title,
-        UserID: listingData.UserID,
+        UserID: UserID,
         Images: listingData.Images
       }
       console.log('Request body:', body);
@@ -144,32 +148,39 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
     setIsFullscreen(!isFullscreen);
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted');
-    console.log('Current photos:', photos);
-    
-    // Convert all photos to base64
-    const imagePromises = photos.map(photo => fileToBase64(photo));
-    console.log('Starting base64 conversion for', imagePromises.length, 'photos');
-    
-    const base64Images = await Promise.all(imagePromises);
-    console.log('Base64 conversion complete. Number of images:', base64Images.length);
-    
-    const listingData = {
-      Title: title,
-      Description: description,
-      Price: price,
-      Category: selectedTags,
-      UserID: UserID,
-      SellStatus: 1,
-      Images: base64Images
-    };
-    console.log('Prepared listing data:', listingData);
-    
-    listingSubmit(listingData);
+  
+    if (!user?.uid) {
+      console.error("No user ID found");
+      return;
+    }
+  
+    try {
+      const base64ImagesWithPrefix = await Promise.all(photos.map(fileToBase64));
+  
+      // Remove "data:image/jpeg;base64," from the front if needed
+      const cleanBase64Images = base64ImagesWithPrefix.map(img => {
+        const base64Index = img.indexOf('base64,');
+        return base64Index !== -1 ? img.substring(base64Index + 7) : img;
+      });
+  
+      const listingData: ListingData = {
+        Title: title,
+        Description: description,
+        Price: price,
+        Category: selectedTags,
+        UserID: user.uid,
+        SellStatus: 1,
+        Images: cleanBase64Images,
+      };
+  
+      listingSubmit(listingData);
+    } catch (error) {
+      console.error('Error preparing listing data:', error);
+    }
   };
+  
 
   // Photo carousel component for image preview
   const PhotoCarousel = ({ isFullscreen }: { isFullscreen: boolean }) => (

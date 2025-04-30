@@ -127,15 +127,46 @@ class ListingService:
             listings = self.ref.child('Listing').get()
             if not listings:
                 raise NotFoundError("No listings found.")
+            
+            # Find the specific listing
+            target_listing = None
             for listing in listings:
                 if listing is not None:
                     for field, value in listing.items():
                         if field == "ListingID" and int(value) == int(listing_id):
-                            return listing
-            raise NotFoundError(f"Listing {listing_id} not found.")
+                            target_listing = listing
+                            break
+                    if target_listing:
+                        break
+            
+            if not target_listing:
+                raise NotFoundError(f"Listing {listing_id} not found.")
+            
+            # Connect to blob storage
+            logger.debug("Connecting to blob storage")
+            s3 = blob_storage.connect_to_blob_db_resource()
+            logger.debug("Successfully connected to blob storage")
+            
+            # Get images from blob storage
+            logger.debug(f"Getting images for listing {listing_id}")
+            images = blob_storage.get_images_from_bucket(s3, listing_id)
+            logger.debug(f"Found {len(images)} images")
+            
+            # Process images and add to listing data
+            if images:
+                base64_images = []
+                for key, data in images:
+                    base64_str = base64.b64encode(data).decode('utf-8')
+                    base64_images.append({'key': key, 'data': base64_str})
+                target_listing["Images"] = base64_images
+                logger.debug(f"Added base64 images to listing data: {target_listing}")
+            
+            return target_listing
+            
         except ServiceError:
             raise
         except Exception as e:
+            logger.error(f"Error in get_listing: {str(e)}", exc_info=True)
             raise DatabaseError(f"Failed to get listing: {e}")
 
 # returns a list of all listings (dictionary format)  from a particular account

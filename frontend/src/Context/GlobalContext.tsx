@@ -1,113 +1,154 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
+// src/Context/GlobalContext.tsx
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+} from 'firebase/auth'
+import { auth } from '../lib/firebase'
+import { accountsApi, AccountData } from '@/pages/api/accounts'
 
 interface GlobalContextType {
-  // Authentication
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  // App-level state
-  filters: any;
-  setFilters: (filters: any) => void;
-  title: string;
-  setTitle: (title: string) => void;
-  listings: any[];
-  setListings: (listings: any[]) => void;
+  user: User | null
+  account: AccountData | null
+  loading: boolean
+  error: string | null
+  signInWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (data: {
+    email: string
+    password: string
+    firstName: string
+    lastName: string
+    school: string
+    username: string
+  }) => Promise<void>
+  logout: () => Promise<void>
+  filters: any
+  setFilters: (filters: any) => void
+  title: string
+  setTitle: (title: string) => void
+  listings: any[]
+  setListings: (listings: any[]) => void
 }
 
-const GlobalContext = createContext<GlobalContextType>({
-  // Auth
-  user: null,
-  loading: true,
-  error: null,
-  signInWithEmail: async () => {},
-  signUpWithEmail: async () => {},
-  logout: async () => {},
-  // App state
-  filters: {},
-  setFilters: () => {},
-  title: '',
-  setTitle: () => {},
-  listings: [],
-  setListings: () => {},
-});
-
-export const useGlobalContext = () => useContext(GlobalContext);
+const GlobalContext = createContext<GlobalContextType>({} as any)
+export const useGlobalContext = () => useContext(GlobalContext)
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({});
-  const [title, setTitle] = useState<string>('');
-  const [listings, setListings] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null)
+  const [account, setAccount] = useState<AccountData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState({})
+  const [title, setTitle] = useState<string>('')
+  const [listings, setListings] = useState<any[]>([])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setUser(fbUser)
+      if (fbUser) {
+        const token = await fbUser.getIdToken()
+        try {
+          const acct = await accountsApi.getAccount(fbUser.uid, token)
+          setAccount(acct)
+        } catch {
+          setAccount(null)
+        }
+      } else {
+        setAccount(null)
+      }
+      setLoading(false)
+    })
+    return unsubscribe
+  }, [])
 
   const signInWithEmail = async (email: string, password: string) => {
+    setLoading(true)
     try {
-      setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      setError(null);
+      const cred = await signInWithEmailAndPassword(auth, email, password)
+      const token = await cred.user.getIdToken()
+      const acct = await accountsApi.getAccount(cred.user.uid, token)
+      setAccount(acct)
+      setError(null)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async ({
+    email,
+    password,
+    firstName,
+    lastName,
+    school,
+    username,
+  }: {
+    email: string
+    password: string
+    firstName: string
+    lastName: string
+    school: string
+    username: string
+  }) => {
+    setLoading(true)
     try {
-      setLoading(true);
       if (!email.endsWith('.edu')) {
-        throw new Error('Please use a .edu email address');
+        throw new Error('Please use a .edu email address')
       }
-      await createUserWithEmailAndPassword(auth, email, password);
-      setError(null);
+
+      // Firebase sign-up
+      const cred = await createUserWithEmailAndPassword(auth, email, password)
+      const token = await cred.user.getIdToken()
+
+      // Backend account creation
+      const payload: AccountData = {
+        UserID: cred.user.uid,
+        First_Name: firstName,
+        Last_Name: lastName,
+        School: school,
+        Username: username,
+        dateTime_creation: new Date().toISOString(),
+        Email: email,
+        Pronouns: "",
+        AboutMe: "",
+      }
+      const acct = await accountsApi.createAccount(payload, token)
+      setAccount(acct)
+      setError(null)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
+      throw err
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const logout = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-      await firebaseSignOut(auth);
-      setError(null);
+      await firebaseSignOut(auth)
+      setAccount(null)
+      setError(null)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <GlobalContext.Provider
       value={{
         user,
+        account,
         loading,
         error,
         signInWithEmail,
-        signUpWithEmail,
+        signUpWithEmail,  // ← here
         logout,
         filters,
         setFilters,
@@ -119,5 +160,5 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     >
       {children}
     </GlobalContext.Provider>
-  );
-};
+  )
+}

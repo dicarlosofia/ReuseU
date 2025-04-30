@@ -16,12 +16,13 @@ const ListingPage: NextPage = () => {
 
   useEffect(() => {
     if (!router.isReady || !id) return
-
+    console.log(listing);
     const fetchListing = async () => {
       try {
         setIsLoading(true)
         const data = await listings.getById(id as string)
         setListing(data)
+        console.log(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch listing")
         console.error("Error fetching listing:", err)

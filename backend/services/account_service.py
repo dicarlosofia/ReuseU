@@ -1,12 +1,11 @@
+# services/account_service.py
+
 import firebase_admin
 from firebase_admin import credentials, db
-from typing import Optional, Dict, Any
-from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError
+from typing import Dict, Any
+from .exceptions import NotFoundError, DatabaseError
 
-
-# get the root of the database
 def get_db_root():
-    """Get the root of the Firebase database."""
     try:
         firebase_admin.get_app()
     except ValueError:
@@ -18,60 +17,65 @@ def get_db_root():
 
 class AccountService:
     def __init__(self, db_ref=None):
-        """Initialize AccountService with optional database reference for testability."""
         self.ref = db_ref or get_db_root()
 
     def add_account(self, account_data: Dict[str, Any]) -> str:
-        """Add a new account. Returns the new UserID."""
+        """
+        Use the provided UserID (firebase uid) as the key.
+        """
         try:
-            accounts = self.ref.child('Account').get()
-            new_key = str(len(accounts)) if accounts else "1"
-            account_data['UserID'] = new_key
-            self.ref.child('Account').child(new_key).set(account_data)
-            return new_key
+            uid = account_data.get('UserID')
+            if not uid:
+                raise ValueError("AccountData must include UserID")
+            self.ref.child('Account').child(uid).set(account_data)
+            return uid
         except Exception as e:
             raise DatabaseError(f"Failed to add account: {e}")
 
-    def delete_acc(self, account_id: str) -> None:
-        """Delete an account by account_id."""
+    def get_acc(self, account_id: str) -> Dict[str, Any]:
+        """Read directly by the Firebase uid key."""
         try:
-            acc_ref = self.ref.child('Account').child(str(account_id))
-            if not acc_ref.get():
+            acc = self.ref.child('Account').child(account_id).get()
+            if not acc:
                 raise NotFoundError(f"Account {account_id} not found.")
-            acc_ref.delete()
-        except ServiceError:
-            raise
-        except Exception as e:
-            raise DatabaseError(f"Failed to delete account: {e}")
-
-    def delete_acc_range(self, min_id: int, max_id: int) -> None:
-        """Delete accounts in a range of IDs."""
-        for i in range(min_id, max_id):
-            try:
-                self.delete_acc(str(i))
-            except NotFoundError:
-                continue  # skip missing accounts
-
-    def get_acc(self, account_id: str) -> Optional[Dict[str, Any]]:
-        """Get account dictionary by account_id."""
-        try:
-            accounts = self.ref.child('Account').get()
-            if not accounts:
-                raise NotFoundError("No accounts found.")
-            for account in accounts:
-                if account is not None:
-                    for field, value in account.items():
-                        if field == "UserID" and int(value) == int(account_id):
-                            return account
-            raise NotFoundError(f"Account {account_id} not found.")
-        except ServiceError:
+            return acc
+        except NotFoundError:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to get account: {e}")
 
-# For backward compatibility, instantiate a default service
+    def delete_acc(self, account_id: str) -> None:
+        try:
+            acc_ref = self.ref.child('Account').child(account_id)
+            if not acc_ref.get():
+                raise NotFoundError(f"Account {account_id} not found.")
+            acc_ref.delete()
+        except NotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to delete account: {e}")
+
+    def update_acc(self, account_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update an account's fields (merge new data into existing account).
+        """
+        try:
+            acc_ref = self.ref.child('Account').child(account_id)
+            existing = acc_ref.get()
+            if not existing:
+                raise NotFoundError(f"Account {account_id} not found.")
+            
+            # Merge existing data with update data
+            updated_data = {**existing, **update_data}
+            acc_ref.update(update_data)
+            return updated_data
+        except NotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to update account: {e}")
+
+# singletons
 account_service = AccountService()
-add_account = account_service.add_account
-delete_acc = account_service.delete_acc
-delete_acc_range = account_service.delete_acc_range
-get_acc = account_service.get_acc
+add_account      = account_service.add_account
+get_acc          = account_service.get_acc
+delete_acc       = account_service.delete_acc

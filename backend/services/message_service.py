@@ -41,22 +41,9 @@ def add_message(message_data):
     target_chat = None
     chat_exists = False
     chats = ref.child('Chat').get()
-    
-        
-    # OLD LOOP
-    # for chat in chats:
-    #     for field, value in chat.items():
-    #         if field == 'ListingID':
-    #             if int(value) == listing_id_temp:
-    #                 target_chat = chat
-    #                 chat_exists = True
-    
-    # Check if chat tied to listing ID exists
-    print((type(chat) for chat in chats))
 
-    # If the chats table has # of chats >= 2
     if isinstance(chats, list):
-    # keys are just indices in the list that are not None
+        # keys are just indices in the list that are not None
         for chat in chats:
             if chat is not None:
                 # To bypass the list of dicts
@@ -84,6 +71,7 @@ def add_message(message_data):
                 if chat_exists == True:
                     break
 
+    # We create a new chat here if a current chat does not exist for the listing
     if chat_exists:
         target_chat["Messages"] = target_chat["Messages"] + (str(message_data))
         # not new key but existing key
@@ -163,3 +151,31 @@ def delete_chat(listing_id):
     #     ref.child('Chat').child(new_key).set(target_chat)
     # else:
     #     print("Chat does not exist")
+
+def delete_message(message_id):
+    """
+    Delete a specific message from the database using its message ID.
+    
+    Args:
+        message_id (str): The ID of the message to delete
+    """
+    try:
+        # Delete the message from the Message table
+        ref.child('Message').child(str(message_id)).delete()
+        
+        # Find and update any chats that contain this message
+        chats = ref.child('Chat').get()
+        if isinstance(chats, dict):
+            for chat_id, chat in chats.items():
+                if chat and 'Messages' in chat:
+                    # Remove the message from the chat's Messages string
+                    messages_str = chat['Messages']
+                    # Use regex to find and remove the message with this ID
+                    pattern = r'\{[^}]*\'MessageID\': \'' + str(message_id) + r'\'[^}]*\}'
+                    new_messages_str = re.sub(pattern, '', messages_str)
+                    if new_messages_str != messages_str:
+                        # Update the chat with the modified messages string
+                        ref.child('Chat').child(chat_id).update({'Messages': new_messages_str})
+    except Exception as e:
+        print(f"Error deleting message: {str(e)}")
+        raise e
