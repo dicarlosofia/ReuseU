@@ -1,5 +1,9 @@
+<<<<<<< fix-opencv
+git # routes/accounts.py
+=======
 # routes/accounts.py
 # Account-related API endpoints.
+>>>>>>> main
 from flask import Blueprint, jsonify, request
 from services.account_service import account_service
 from services.exceptions import NotFoundError, DatabaseError

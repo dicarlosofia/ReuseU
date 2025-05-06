@@ -5,11 +5,13 @@ Blob Storage:
 
 Author(s): Peter Murphy
 '''
+import io
 import json
 import re
 import os
 import base64
 import random
+from PIL import Image
 
 import boto3
 from botocore.client import Config
@@ -143,55 +145,63 @@ def get_image_url_from_key(key: str, s3_resource=None) -> str:
     )
 
 
-# downscale an image with default return of 90% pixels
-def downscale_image(img, scale=0.9):
-    h, w = img.shape[:2]
-    new_dim = (int(w * scale), int(h * scale))
-    return cv2.resize(img, new_dim)
+# the actual downscale function that resizes
+def downscale_image(img: Image.Image, scale: float = 0.9) -> Image.Image:
+    w, h = img.size
+    return img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
-
-# return a compressed image until we have the correct size
-def compress_image(img, max_kb):
-    # Convert input to numpy array if it's not already
-    if isinstance(img, (bytes, bytearray)):
-        arr = np.frombuffer(img, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
-            raise ValueError("Could not convert the given data to an image")
-    elif isinstance(img, str):
-        # Handle base64 string
-        if img.startswith('data:image'):
-            img = img.split(',')[1]
-        img_bytes = base64.b64decode(img)
-        arr = np.frombuffer(img_bytes, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
-            raise ValueError("Could not convert the given base64 string to an image")
+def compress_image(
+    img_input,
+    max_kb: int,
+    scale: float = 0.5,
+    initial_quality: int = 85,
+    min_quality: int = 20
+) -> bytes:
+    # check if its an image using pillow lib
+    if isinstance(img_input, Image.Image):
+        img = img_input
+    else:
+        if isinstance(img_input, str) and img_input.startswith("data:image"):
+            img_input = base64.b64decode(img_input.split(",",1)[1])
+        if isinstance(img_input, (bytes, bytearray)):
+            img = Image.open(io.BytesIO(img_input))
+        else:
+            raise ValueError("Unsupported input type")
+        img = img.convert("RGB")  #ensure color
 
     max_bytes = max_kb * 1024
-    compressed = img.copy()
-
-    # Keep downscaling until we hit the correct bytesize
+    quality = initial_quality
     while True:
-        ok, buf = cv2.imencode('.jpg', compressed)
-        if not ok:
-            break
-        size = len(buf)
-        if size <= max_bytes:
-            return buf.tobytes()
-        compressed = downscale_image(compressed)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True, progressive=True)
+        data = buf.getvalue()
+        if len(data) <= max_bytes:
+            return data
+
+        # if check if need to downscale quality
+        if quality > min_quality:
+            quality = max(min_quality, quality - 5)
+        else:
+            # downscale if need be
+            img = downscale_image(img, scale=scale)
+            quality = initial_quality
+
 
 
 if __name__ == "__main__":
-    s3 = connect_to_blob_db_resource()
-    files = get_all_files(s3)
-    print("Downloaded", len(files), "objects.")
-    for key, data in files:
-        print(key, len(data), "bytes")
+    pass
 
-    # with open("/Users/pmurphy01/Desktop/howies_meat.jpg", "rb") as f:
-    #     data = f.read()
+    #s3 = connect_to_blob_db_resource()
+    #files = get_all_files(s3)
+    #print("Downloaded", len(files), "objects.")
+    #for key, data in files:
+        #print(key, len(data), "bytes")
 
-    # data = compress_image(data,1000)
-
-    # upload_file_to_bucket(s3,"howies_meat_1mb_limit", 1, data)  -> start here
+    #with open("/Users/pmurphy01/Desktop/test123.jpg", "rb") as f:
+         #data = f.read()
+    #print("HERE")
+    #data = compress_image(data,1)
+    #print("THERE")
+    #upload_file_to_bucket(s3,"JOE12",  data)  #-> start here
+    #print("uploaded")
+#test
