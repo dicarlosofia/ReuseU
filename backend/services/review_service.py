@@ -115,10 +115,5 @@ get_sellers_reviews = review_service.get_sellers_reviews
 get_sellers_stars = review_service.get_sellers_stars
 
 
-print(get_sellers_reviews())
-print(get_sellers_stars())
-
-
-
 
 
