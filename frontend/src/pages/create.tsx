@@ -19,7 +19,7 @@ export default function Create() {
   };
 
   return (
-    <main className={`${geistSans.variable} font-sans min-h-screen bg-[#EEDBBE]`}>
+    <main className={`${geistSans.variable} font-sans min-h-screen bg-cyan-600`}>
       <Dashboard />
       <div className="pt-16">
         <CreateListing onSubmit={handleSubmit} />

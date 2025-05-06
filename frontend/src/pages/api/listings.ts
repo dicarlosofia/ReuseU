@@ -7,11 +7,11 @@ export interface Listing {
   Description: string
   Price: string
   Category: string[]
-  Images?: string[]
-  base64images?: { data: string; key?: string }[]
   UserID: string
   SellStatus: number
   CreateTime?: string
+  CoverImageUrl?: string          // signed URL for cover
+  ImageUrls?: string[]           // signed URLs for all images (only on detail view)
 }
 
 export const listingsApi = {
@@ -48,9 +48,9 @@ export const listingsApi = {
       headers: getAuthHeaders(token),
     })
     if (!response.ok) throw new Error('Failed to fetch listing')
-    const data = response.json();
-    console.log(data);
-    return data;
+    const data = await response.json()
+    console.log('Fetched single listing:', data)
+    return data
   },
 
   // Create a new listing

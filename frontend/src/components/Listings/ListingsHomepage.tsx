@@ -173,10 +173,10 @@ export default function ListingsHomepage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
-        <div className="flex flex-col items-center text-emerald-700">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-200 border-t-emerald-700"></div>
-          <p className="mt-4 font-medium">Loading listings...</p>
+      <div className="min-h-screen pt-20 flex justify-center items-center bg-cyan-100">
+        <div className="flex flex-col items-center text-lime-800">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-lime-500 border-t-lime-800"></div>
+          <p className="text-lime-800 mt-4 font-medium">Loading listings...</p>
         </div>
       </div>
     )
@@ -184,7 +184,7 @@ export default function ListingsHomepage() {
 
   if (error) {
     return (
-      <div className="min-h-screen pt-20 flex justify-center items-center bg-emerald-50">
+      <div className="min-h-screen pt-20 flex justify-center items-center bg-cyan-100">
         <div className="bg-white p-6 rounded-lg shadow-md text-red-500 max-w-md text-center">
           <p className="text-xl font-medium">Error</p>
           <p className="mt-2">{error}</p>
@@ -195,26 +195,26 @@ export default function ListingsHomepage() {
 
   if (filteredListings.length === 0) {
     return (
-      <div className="min-h-screen pt-20 bg-emerald-50">
+      <div className="min-h-screen pt-20 bg-cyan-100">
         <div className="flex gap-8 max-w-7xl mx-auto px-4">
           <div className="w-64 shrink-0">
-            <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
-              <div className="p-4 border-b bg-emerald-700 text-white">
+            <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
+              <div className="p-4 border-b bg-lime-800 text-white">
                 <h2 className="text-xl font-semibold text-center flex items-center justify-center">
                   <FilterIcon className="w-5 h-5 mr-2" />
                   Filters
                 </h2>
               </div>
               <div className="p-4 h-full">
-                <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                <div className="mb-4 p-3 bg-lime-500 rounded-lg border border-cyan-800">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={showMyListings}
                       onChange={() => setShowMyListings(!showMyListings)}
-                      className="form-checkbox h-5 w-5 text-emerald-600 rounded"
+                      className="form-checkbox h-5 w-5 text-lime-700 rounded"
                     />
-                    <span className="text-gray-700 font-medium flex items-center">
+                    <span className="text-cyan-800 font-medium flex items-center">
                       <UserIcon className="w-4 h-4 mr-1" />
                       Show My Listings
                     </span>
@@ -229,7 +229,7 @@ export default function ListingsHomepage() {
               <p className="text-gray-500">No listings found matching your filters</p>
               <button
                 onClick={() => setFilters({ categories: [], priceRanges: [] })}
-                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                className="mt-4 px-4 py-2 bg-lime-700 text-white rounded-lg hover:bg-lime-800 transition-colors"
               >
                 Clear Filters
               </button>
@@ -241,18 +241,18 @@ export default function ListingsHomepage() {
   }
 
   return (
-    <div className="min-h-screen pt-20 bg-emerald-50">
+    <div className="min-h-screen pt-20 bg-cyan-100">
       <div className="flex gap-8 max-w-7xl mx-auto px-4">
         <div className="w-64 shrink-0">
-          <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-emerald-100">
-            <div className="p-4 border-b bg-emerald-700 text-white">
+          <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
+            <div className="p-4 border-b bg-lime-800 text-white">
               <h2 className="text-xl font-semibold text-center flex items-center justify-center">
                 <FilterIcon className="w-5 h-5 mr-2" />
                 Filters
               </h2>
             </div>
             <div className="p-4 h-full">
-              <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+              <div className="mb-4 p-3 bg-cyan-100 rounded-lg border border-cyan-600">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -261,9 +261,9 @@ export default function ListingsHomepage() {
                       setShowMyListings(!showMyListings)
                       setCurrentPage(1) // Reset pagination when toggling
                     }}
-                    className="form-checkbox h-5 w-5 text-emerald-600 rounded"
+                    className="form-checkbox h-5 w-5 text-lime-700 rounded"
                   />
-                  <span className="text-gray-700 font-medium flex items-center">
+                  <span className="text-cyan-800 font-medium flex items-center">
                     <UserIcon className="w-4 h-4 mr-1" />
                     Show My Listings
                   </span>
@@ -276,6 +276,11 @@ export default function ListingsHomepage() {
 
         <div className="flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/*
+              Listing receives UserID and ListingID from each listing.
+              The Listing component is responsible for fetching the username using UserID
+              and routing to /profile/{username} when the profile button is clicked.
+            */}
             {displayedListings.map((listing) => (
               <Listing
                 key={listing.ListingID}
@@ -283,14 +288,7 @@ export default function ListingsHomepage() {
                 price={parseFloat(listing.Price)}
                 tags={listing.Category}
                 desc={listing.Description}
-                image={
-                  typeof listing.Images?.[0] === "string"
-                    ? listing.Images[0]
-                    : Array.isArray(listing.base64images) &&
-                      typeof listing.base64images[0]?.data === "string"
-                    ? listing.base64images[0].data
-                    : ""
-                }
+                image={listing.CoverImageUrl || "/placeholder.jpg"}
                 ListingID={listing.ListingID || ""}
                 UserID={listing.UserID}
               />
@@ -301,7 +299,7 @@ export default function ListingsHomepage() {
             <div className="mt-8 text-center">
               <button
                 onClick={loadMore}
-                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                className="px-6 py-3 bg-lime-800 text-white rounded-lg hover:bg-lime-800 transition-colors"
               >
                 Load More
               </button>

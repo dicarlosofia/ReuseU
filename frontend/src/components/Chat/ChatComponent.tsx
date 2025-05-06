@@ -12,289 +12,327 @@
  * It includes real-time message updates and a simulated response system.
  */
 
-import { useState, useEffect } from 'react';
-import { ChatBubbleLeftIcon, ChevronDownIcon, UserCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { ChevronDownIcon, UserCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
+import { useRouter } from 'next/router';
 import { useGlobalContext } from '@/Context/GlobalContext';
+import { chatsApi, Message as ApiMessage } from '@/pages/api/chats';
 
-// Props for initializing chat with a specific listing
+// Matches backend response shape
+export interface ApiChat {
+  id: string;
+  listing_id: string;
+  other_user: {
+    username: string;
+    avatar?: string;
+  } | null;
+  last_message?: {
+    text: string;
+    timestamp: string;
+  } | null;
+}
+
+// Props for component initialization
 interface ChatComponentProps {
   listingId?: string;
   listingTitle?: string;
 }
 
-// Structure for individual messages
-interface Message {
+// Local UI chat structure
+interface Chat {
+  id: string;
+  listing_id: string;
+  participant: {
+    name: string;
+    avatar?: string;
+    id: string;
+  };
+  unreadCount: number;
+  title: string;
+  lastMessageTime: string;
+}
+
+// Adapted message shape
+interface AdaptedMessage {
   text: string;
   sender: 'user' | 'other';
   timestamp: string;
 }
 
-// Structure for chat conversations
-interface Chat {
-  id: string;
-  title: string;
-  participant: {
-    name: string;
-    avatar?: string;
-  };
-  messages: Message[];
-  isMinimized: boolean;
-  unreadCount: number;
-  lastMessageTime: string;
+// Minimal message shape for adapting
+interface MinimalMessage {
+  content: string;
+  sender_id: string;
+  created_at: string;
 }
 
-const ChatComponent = ({ listingId, listingTitle }: ChatComponentProps) => {
-  const { user } = useGlobalContext();
-  // Initialize with sample chats for demonstration
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: '1',
-      title: 'Chat about Vintage Chair',
-      participant: {
-        name: 'John Doe',
-      },
-      messages: [
-        {
-          text: 'Hi! Is this chair still available?',
-          sender: 'other',
-          timestamp: '10:30 AM'
-        },
-        {
-          text: 'Yes, it is! Would you like to arrange a pickup?',
-          sender: 'user',
-          timestamp: '10:32 AM'
-        }
-      ],
-      isMinimized: true,
-      unreadCount: 0,
-      lastMessageTime: '10:32 AM'
-    },
-    {
-      id: '2',
-      title: 'Chat about Bookshelf',
-      participant: {
-        name: 'Jane Smith',
-      },
-      messages: [
-        {
-          text: 'Hello! I\'m interested in the bookshelf',
-          sender: 'other',
-          timestamp: 'Yesterday'
-        }
-      ],
-      isMinimized: true,
-      unreadCount: 1,
-      lastMessageTime: 'Yesterday'
-    }
-  ]);
-  const [newMessage, setNewMessage] = useState('');
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [isMinimized, setIsMinimized] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>(
+  ({ listingId, listingTitle }, ref) => {
+    const { user, account } = useGlobalContext();
+    const router = useRouter();
 
-  // Initialize new chat when listing details are provided
-  useEffect(() => {
-    if (listingId && listingTitle) {
-      setChats(prevChats => {
-        if (!prevChats.some(chat => chat.id === listingId)) {
-          return [...prevChats, {
-            id: listingId,
-            title: `Chat about ${listingTitle}`,
-            participant: {
-              name: 'New User',
-            },
-            messages: [],
-            isMinimized: true,
-            unreadCount: 0,
-            lastMessageTime: 'Just now'
-          }];
+    const [chats, setChats] = useState<Chat[]>([]);
+    const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+    const [adaptedMessages, setAdaptedMessages] = useState<AdaptedMessage[]>([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [loadingChats, setLoadingChats] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Fetch user's chats from backend
+    const fetchChats = useCallback(async () => {
+      console.log('[ChatComponent] fetchChats called');
+      if (!user?.uid || !account?.Username) return;
+      setLoadingChats(true);
+      try {
+        const token = await user.getIdToken();
+        const { chats: apiChats }: { chats: ApiChat[] } = await chatsApi.getByUserId(user.uid, token);
+        console.log(apiChats);
+        // Dedupe by id
+        const unique = apiChats.filter((c, i, a) => a.findIndex(x => x.id === c.id) === i);
+        setChats(unique.map(c => ({
+          id: c.id,
+          listing_id: c.listing_id,
+          participant: {
+            name: c.other_user?.username || 'Unknown',
+            avatar: c.other_user?.avatar,
+            id: '',
+          },
+          unreadCount: 0,
+          lastMessageTime: c.last_message?.timestamp || '',
+          title: `Chat about Listing ${c.listing_id}`,
+        })));
+      } catch (error) {
+        console.error('Failed to fetch chats', error);
+      } finally {
+        setLoadingChats(false);
+      }
+    }, [listingId, user, account]);
+
+    // Open a specific chat and load its messages
+    const openChat = async (chat: Chat) => {
+      try {
+        if (!user) {
+          console.error('User not authenticated');
+          return;
         }
-        return prevChats;
-      });
-    }
-  }, [listingId, listingTitle]);
-
-  // Handle sending a new message
-  const handleSendMessage = (chatId: string, e: React.FormEvent) => {
-    e.preventDefault();
-    if (newMessage.trim()) {
-      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      // Add user's message
-      setChats(chats.map(chat => {
-        if (chat.id === chatId) {
-          return {
-            ...chat,
-            messages: [...chat.messages, { 
-              text: newMessage, 
-              sender: 'user',
-              timestamp 
-            }],
-            lastMessageTime: timestamp,
-            unreadCount: chat.isMinimized ? chat.unreadCount + 1 : 0
+        const token = await user.getIdToken();
+        const full = await chatsApi.getById(chat.id, token);
+        setSelectedChat(chat);
+        setIsCollapsed(false);
+        if (user?.uid && full.messages) {
+          // Map backend fields to expected format for adaptMessage
+          // Define a type for the backend message shape
+          type BackendMessage = {
+            id: string;
+            sender_id: string;
+            message: string;
+            timestamp: string;
+            read: boolean;
           };
+          const adapted = (full.messages as BackendMessage[])
+            .map((m) => adaptMessage({
+              content: m.message,
+              sender_id: m.sender_id,
+              created_at: m.timestamp,
+            }, user.uid))
+            .filter((m: AdaptedMessage | null): m is AdaptedMessage => m !== null);
+          setAdaptedMessages(adapted);
         }
-        return chat;
-      }));
-      setNewMessage('');
+      } catch (error) {
+        console.error('Failed to open chat', error);
+      }
+    };
 
-      // Simulate a response after 1 second
-      setTimeout(() => {
-        const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setChats(chats.map(chat => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              messages: [...chat.messages, { 
-                text: 'Thank you for your message! This is a simulated response.', 
-                sender: 'other',
-                timestamp: responseTimestamp 
-              }],
-              lastMessageTime: responseTimestamp,
-              unreadCount: chat.isMinimized ? chat.unreadCount + 1 : 0
-            };
-          }
-          return chat;
-        }));
-      }, 1000);
-    }
-  };
+    // Close current chat view
+    const closeChat = () => {
+      setSelectedChat(null);
+      setAdaptedMessages([]);
+    };
 
-  // Open a specific chat window
-  const openChat = (chat: Chat) => {
-    setSelectedChat(chat);
-    setIsMinimized(false);
-    setIsCollapsed(false);
-    setChats(chats.map(c => ({
-      ...c,
-      unreadCount: c.id === chat.id ? 0 : c.unreadCount
-    })));
-  };
+    // Send a new message
+    const handleSendMessage = async (chatId: string, e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newMessage.trim() || !user?.uid) return;
+      try {
+        if (!user) {
+          console.error('User not authenticated');
+          return;
+        }
+        const token = await user.getIdToken();
+        await chatsApi.sendMessage({
+          chat_id: chatId,
+          sender_id: user.uid,
+          content: newMessage,
+        }, chatId, token);
+        // Optimistic UI update
+        setAdaptedMessages(prev => [
+          ...prev,
+          { text: newMessage, sender: 'user', timestamp: new Date().toISOString() },
+        ]);
+        setNewMessage('');
+      } catch (error) {
+        console.error('Failed to send message', error);
+      }
+    };
 
-  // Close the current chat window
-  const closeChat = () => {
-    setIsMinimized(true);
-    setSelectedChat(null);
-    setIsCollapsed(false);
-  };
+    // Toggle collapse/expand of chat body
+    const toggleCollapse = () => {
+      setIsCollapsed(prev => !prev);
+    };
 
-  // Toggle chat interface collapse/expand
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+    // Determine header title
+    const headerTitle = selectedChat
+      ? `Chat with ${selectedChat.participant.name}`
+      : listingTitle
+      ? `Chat about ${listingTitle}`
+      : 'Chats';
 
-  // Main chat interface render
-  return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-      {!isMinimized && selectedChat ? (
-        // Individual chat window
-        <div className="w-80 bg-white rounded-lg shadow-xl">
-          <div className="flex items-center justify-between p-3 bg-blue-600 text-white rounded-t-lg">
-            <div className="flex items-center gap-2">
-              <button 
+    // Convert API message to UI message
+    const adaptMessage = (msg: MinimalMessage, currentUserId: string): AdaptedMessage | null => {
+      if (!msg) return null;
+      return {
+        text: msg.content,
+        sender: msg.sender_id === currentUserId ? 'user' : 'other',
+        timestamp: msg.created_at,
+      };
+    };
+
+    useImperativeHandle(ref, () => ({ fetchChats }));
+
+    // Always load chats on mount and when user/account changes
+    useEffect(() => {
+      if (user?.uid && account?.Username) {
+        fetchChats();
+      }
+    }, [user, account, fetchChats]);
+
+    return (
+      <div className="fixed bottom-4 right-4 z-50 w-96">
+        {/* Chat header */}
+        <div className="bg-cyan-950 text-white p-4 rounded-t-lg flex justify-between items-center">
+          <h2 className="text-lg font-semibold">{headerTitle}</h2>
+          <div className="flex items-center">
+            {selectedChat && (
+              <ArrowLeftIcon
+                className="h-6 w-6 mr-2 cursor-pointer"
                 onClick={closeChat}
-                className="hover:bg-blue-700 p-1 rounded"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </button>
-              <UserCircleIcon className="h-6 w-6" />
-              <span>{selectedChat.participant.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={toggleCollapse} className="hover:bg-blue-700 p-1 rounded">
-                <ChevronDownIcon className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
+              />
+            )}
+            <ChevronDownIcon
+              className={`h-6 w-6 cursor-pointer transform transition-transform duration-300 ${
+                isCollapsed ? 'rotate-180' : ''
+              }`}
+              onClick={toggleCollapse}
+            />
           </div>
+        </div>
 
-          {!isCollapsed && (
-            <>
-              {/* Message history */}
-              <div className="h-96 overflow-y-auto p-4">
-                {selectedChat.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 ${
-                      message.sender === 'user' ? 'text-right' : 'text-left'
-                    }`}
+        {/* Chat body */}
+        {!isCollapsed && (
+          <div className="bg-white rounded-b-lg border">
+            {!selectedChat ? (
+              loadingChats ? (
+                /* Loading spinner */
+                <div className="flex items-center justify-center h-32">
+                  <svg
+                    className="animate-spin h-8 w-8 text-cyan-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
                   >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                </div>
+              ) : (
+                /* Chats list */
+                <div className="max-h-96 overflow-y-auto">
+                  {chats.map(chat => (
+                    <button
+                      key={chat.id}
+                      onClick={() => openChat(chat)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-cyan-100 border-b last:border-b-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                        <div className="text-left">
+                          <div className="text-cyan-800 font-medium">{chat.participant.name}</div>
+                          <div className="text-sm text-gray-500">{chat.title}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">{chat.lastMessageTime}</div>
+                        {chat.unreadCount > 0 && (
+                          <div className="mt-1 bg-cyan-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {chat.unreadCount}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Selected chat view */
+              <>
+                <div className="h-72 overflow-y-auto p-4">
+                  {adaptedMessages.map((message, i) => (
                     <div
-                      className={`inline-block p-2 rounded-lg ${
-                        message.sender === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                      key={i}
+                      className={`mb-4 ${
+                        message.sender === 'user' ? 'text-right' : 'text-left'
                       }`}
                     >
-                      {message.text}
+                      <div
+                        className={`inline-block p-2 rounded-lg ${
+                          message.sender === 'user'
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-gray-200 text-cyan-950'
+                        }`}
+                      >
+                        {message.text}
+                        <span className="text-xs block mt-1">{message.timestamp}</span>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {message.timestamp}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Message input form */}
-              <form onSubmit={(e) => handleSendMessage(selectedChat.id, e)} className="p-3 border-t">
-                <div className="flex gap-2">
+                  ))}
+                </div>
+                {/* Message input */}
+                <form
+                  className="text-cyan-700 flex items-center gap-2 p-4 border-t bg-cyan-50 rounded-b-lg"
+                  onSubmit={e => handleSendMessage(selectedChat.id, e)}
+                >
                   <input
                     type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="bg-white border-cyan-800 flex-1 rounded border px-3 py-2"
                     placeholder="Type a message..."
-                    className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    autoFocus
                   />
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
+                  <button type="submit" className="bg-cyan-600 text-white rounded px-4 py-2">
                     Send
                   </button>
-                </div>
-              </form>
-            </>
-          )}
-        </div>
-      ) : (
-        // Chat list view
-        <div className="w-80 bg-white rounded-lg shadow-xl">
-          <div className="p-3 bg-blue-600 text-white rounded-t-lg flex justify-between items-center">
-            <h3 className="font-semibold">My Chats</h3>
-            <button onClick={toggleCollapse} className="hover:bg-blue-700 p-1 rounded">
-              <ChevronDownIcon className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-            </button>
+                </form>
+              </>
+            )}
           </div>
-          {!isCollapsed && (
-            <div className="max-h-96 overflow-y-auto">
-              {chats.map(chat => (
-                <button
-                  key={chat.id}
-                  onClick={() => openChat(chat)}
-                  className="w-full p-3 flex items-center justify-between hover:bg-gray-100 border-b last:border-b-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                    <div className="text-left">
-                      <div className="font-medium">{chat.participant.name}</div>
-                      <div className="text-sm text-gray-500">{chat.title}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">{chat.lastMessageTime}</div>
-                    {chat.unreadCount > 0 && (
-                      <div className="mt-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {chat.unreadCount}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  }
+);
+
+ChatComponent.displayName = 'ChatComponent';
 
 export default ChatComponent;

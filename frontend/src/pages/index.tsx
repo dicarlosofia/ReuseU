@@ -12,7 +12,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <main className={`${geistSans.variable} font-sans min-h-screen bg-[#EEDBBE]`}>
+    <main className={`${geistSans.variable} font-sans min-h-screen bg-cyan-600`}>
       <Dashboard />
       <div className="container mx-auto px-4 pt-16">
         <ListingsHomepage/>

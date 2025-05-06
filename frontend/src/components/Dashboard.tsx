@@ -27,11 +27,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex items-center fixed top-0 left-0 w-full h-16 bg-emerald-700 text-white shadow-md z-50">
+    <div className="flex items-center fixed top-0 left-0 w-full h-16 bg-lime-800 text-white shadow-md z-50">
       {/* Logo / Home */}
       <div className="pl-5 h-full flex items-center">
         <div
-          className="cursor-pointer flex items-center font-bold text-xl rounded-lg px-4 py-2 bg-emerald-800 hover:bg-emerald-900 transition-colors"
+          className="cursor-pointer flex items-center font-bold text-xl rounded-lg px-4 py-2 bg-cyan-950 hover:bg-lime-500 transition-colors"
           onClick={handleReuseClick}
         >
           <RecycleIcon className="mr-2 h-5 w-5" />
@@ -43,18 +43,18 @@ export default function Dashboard() {
       <div className="relative w-3/4 pl-5 flex-grow mx-4">
         <div className="relative flex items-center">
           <input
-            className="w-full pl-10 pr-4 py-2 rounded-full bg-white/90 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"
+            className="w-full pl-10 pr-4 py-2 rounded-full bg-white text-cyan-950 focus:outline-none focus:ring-2 focus:ring-cyan-600 placeholder-gray-500"
             type="text"
             placeholder="Search for a listing..."
           />
-          <MagnifyingGlassIcon className="absolute left-3 h-5 w-5 text-emerald-600" />
+          <MagnifyingGlassIcon className="absolute left-3 h-5 w-5 text-lime-800" />
         </div>
       </div>
 
       {/* Create listing */}
       <div className="px-2 h-full flex items-center">
         <button
-          className="flex items-center justify-center bg-emerald-800 hover:bg-emerald-900 text-white rounded-full p-2 transition-colors"
+          className="flex items-center justify-center bg-lime-900 hover:bg-lime-500 text-white rounded-full p-2 transition-colors"
           onClick={handleMakeAListingClick}
           title="Create New Listing"
         >
@@ -65,7 +65,7 @@ export default function Dashboard() {
       {/* Profile */}
       <div className="px-2 h-full flex items-center">
         <button
-          className="flex items-center justify-center hover:bg-emerald-800 rounded-full p-2 transition-colors"
+          className="flex items-center justify-center hover:bg-lime-900 rounded-full p-2 transition-colors"
           onClick={handleUserCircleClick}
           title="Profile"
         >
@@ -76,7 +76,7 @@ export default function Dashboard() {
       {/* Settings */}
       <div className="px-5 h-full flex items-center relative">
         <button
-          className="flex items-center justify-center hover:bg-emerald-800 rounded-full p-2 transition-colors"
+          className="flex items-center justify-center hover:bg-lime-900 rounded-full p-2 transition-colors"
           onClick={handleCogClick}
           title="Settings"
         >

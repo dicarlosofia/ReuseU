@@ -69,7 +69,28 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password)
       const token = await cred.user.getIdToken()
-      const acct = await accountsApi.getAccount(cred.user.uid, token)
+      let acct: AccountData | null = null;
+      try {
+        acct = await accountsApi.getAccount(cred.user.uid, token)
+      } catch (err: any) {
+        // If not found, create backend account with minimal info
+        if (cred.user) {
+          const payload: AccountData = {
+            UserID: cred.user.uid,
+            First_Name: cred.user.displayName?.split(' ')[0] || '',
+            Last_Name: cred.user.displayName?.split(' ')[1] || '',
+            School: '',
+            Username: cred.user.email?.split('@')[0] || cred.user.uid,
+            dateTime_creation: new Date().toISOString(),
+            Email: cred.user.email || '',
+            Pronouns: '',
+            AboutMe: '',
+          };
+          acct = await accountsApi.createAccount(payload, token);
+        } else {
+          throw err;
+        }
+      }
       setAccount(acct)
       setError(null)
     } catch (err: any) {

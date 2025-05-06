@@ -1,5 +1,8 @@
+boto3
 firebase-admin
 flask
 flask_cors
+opencv-python
 pytest
+python-dotenv
 PyJWT

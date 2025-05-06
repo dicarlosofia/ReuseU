@@ -92,9 +92,12 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         UserID: UserID,
         Images: listingData.Images
       }
-      console.log('Request body:', body);
       
-      const response = await listingsApi.create(body, "1");
+      if(!user){
+        return false;
+      }
+      const token = await user.getIdToken();  
+      const response = await listingsApi.create(body, token);
       console.log('Server response:', response);
       
       setShowSuccess(true);
@@ -188,7 +191,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
       <div className={`relative ${
         isFullscreen 
           ? 'h-screen w-screen flex items-center justify-center' 
-          : 'h-[50vh] bg-gray-100 rounded w-[50vh]'
+          : 'h-[50vh] bg-cyan-100 rounded w-[50vh]'
       }`}>
         {/* Current photo display */}
         <img
@@ -278,11 +281,11 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
       <div className="flex items-center mb-8">
         <button 
           onClick={handleBack}
-          className="bg-[#2A9FD0] text-white px-4 py-2 rounded hover:bg-[#2589B4] flex items-center gap-2"
+          className="bg-lime-800 text-white px-4 py-2 rounded hover:bg-cyan-600 flex items-center gap-2"
         >
           ← Back
         </button>
-        <h1 className="text-6xl font-semibold ml-4 pl-[2vh] pt-[2vh]">Create Listing</h1>
+        <h1 className="text-cyan-800 text-6xl font-semibold ml-4 pl-[2vh] pt-[2vh]">Create Listing</h1>
       </div>
 
       {showSuccess ? (
@@ -295,7 +298,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
           {/* Title and tags section */}
           <div className="flex gap-4">
             <div className="w-2/3 flex items-center gap-2">
-              <label htmlFor="title" className="block text-lg mb-2">
+              <label htmlFor="title" className="text-cyan-800 block text-lg mb-2">
                 Listing Title:
               </label>
               <input
@@ -304,16 +307,16 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Default Item"
-                className="w-3/5  text-black p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+                className="w-3/5  text-cyan-800 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
               />
             </div>
             
             {/* Selected tags display */}
             <div className="w-1/3">
-              <label className="block text-lg mb-2">
+              <label className="text-cyan-800 block text-lg mb-2">
                 Chosen Tags:
               </label>
-              <div className="border rounded p-2 min-h-[40px]">
+              <div className="text-cyan-800 border rounded p-2 min-h-[40px]">
                 {selectedTags.map((tag) => (
                   <span 
                     key={tag} 
@@ -328,15 +331,15 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
 
             {/* Available tags selection */}
             <div className="w-1/3">
-              <label className="block text-lg text-black mb-2">
+              <label className="block text-lg text-cyan-800 mb-2">
                 Choose Tags
               </label>
-              <div className="border rounded p-2 min-h-[40px]">
+              <div className="text-cyan-800 border rounded p-2 min-h-[40px]">
                 {availableTags.filter(tag => !selectedTags.includes(tag)).map((tag) => (
                   <span 
                     key={tag} 
                     onClick={() => chooseTag(tag)} 
-                    className="cursor-pointer inline-block bg-gray-200 text-gray-800 text-sm px-2 py-1 rounded mr-1 mb-1 hover:bg-gray-300"
+                    className="cursor-pointer inline-block bg-lime-200 text-cyan-800 text-sm px-2 py-1 rounded mr-1 mb-1 hover:bg-lime-500"
                   >
                     {tag}
                   </span>
@@ -347,7 +350,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
 
           {/* Description input */}
           <div>
-            <label htmlFor="description" className="block text-lg mb-2">
+            <label htmlFor="description" className="text-cyan-800 block text-lg mb-2">
               Description:
             </label>
             <textarea
@@ -355,13 +358,13 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item..."
-              className="w-full h-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+              className="text-cyan-800 w-full h-32 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
             />
           </div>
 
           {/* Price input */}
           <div>
-            <label htmlFor="price" className="block text-lg mb-2">
+            <label htmlFor="price" className="text-cyan-800 block text-lg mb-2">
               Price:
             </label>
             <input
@@ -370,13 +373,13 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="w-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
+              className="text-cyan-800 w-32 p-2.5 border rounded focus:ring-1 focus:ring-[#2A9FD0] focus:border-[#2A9FD0]"
             />
           </div>
 
           {/* Photo upload section */}
           <div>
-            <label className="block text-lg mb-2">
+            <label className="text-cyan-800 block text-lg mb-2">
               Photos:
             </label>
             <div className="flex gap-4">
@@ -391,7 +394,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
                 />
                 <label
                   htmlFor="photo-upload"
-                  className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50"
+                  className="text-cyan-800 flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-cyan-50"
                 >
                   <ArrowUpTrayIcon className="w-6 h-6" />
                   <span>Upload Photos</span>
@@ -401,8 +404,8 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
                 {photos.length > 0 ? (
                   <PhotoCarousel isFullscreen={isFullscreen} />
                 ) : (
-                  <div className="h-[50vh] bg-gray-100 rounded w-[50vh] flex items-center justify-center">
-                    <span className="text-gray-400">No photos uploaded</span>
+                  <div className="h-[50vh] bg-lime-100 rounded w-[50vh] flex items-center justify-center">
+                    <span className="text-lime-500">No photos uploaded</span>
                   </div>
                 )}
               </div>
@@ -414,7 +417,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="bg-[#2A9FD0] text-white px-6 py-3 rounded-lg hover:bg-[#2589B4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-lime-800 text-white px-6 py-3 rounded-lg hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isLoading ? (
                 <>

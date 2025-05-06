@@ -32,7 +32,7 @@ const Navbar = () => {
                       logout();
                       setShowSettings(false);
                     }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-cyan-950 hover:bg-cyan-100"
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5 mr-2" />
                     Log Out

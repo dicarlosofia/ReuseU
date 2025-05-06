@@ -56,7 +56,7 @@ const ListingPage: NextPage = () => {
     )
   }
 
-  if (!listing) {
+  if (!listing || !listing.Title) {
     return (
       <div>
         <Dashboard />
@@ -67,21 +67,21 @@ const ListingPage: NextPage = () => {
     )
   }
 
+  console.log('[ListingPage] Rendering listing:', listing);
   return (
     <div>
       <Dashboard />
       <FullListing
         title={listing.Title}
         price={parseFloat(listing.Price)}
-        tags={listing.Category}
+        tags={Array.isArray(listing.Category) ? listing.Category : []}
         desc={listing.Description}
-        image={
-          listing.Images?.[0] ||
-          listing.base64images?.[0]?.data ||
-          ""
-        }
-        sellerId={listing.UserID}
-      />
+        image={listing.ImageUrls?.[0]} // first image as cover
+        additionalImages={listing.ImageUrls?.slice(1) || []}
+  sellerId={listing.UserID}
+  listingId={listing.ListingID}
+/>
+
     </div>
   )
 }
