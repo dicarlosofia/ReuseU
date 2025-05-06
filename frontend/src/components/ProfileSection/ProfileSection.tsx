@@ -37,10 +37,11 @@ const ProfileSection: React.FC = () => {
       }
 
       if (user) {
+        console.log("USER HERE", user);
         try {
-          const res = await fetch(`/api/accounts/${user.uid}`);
-          if (!res.ok) throw new Error("Failed to fetch profile");
-          const data = await res.json();
+          const token = await user.getIdToken();
+          const data = await accountsApi.getAccount(user.uid, token);
+          console.log("Profile data:", data);
           setProfileData({
             username: data.Username,
             name: `${data.First_Name} ${data.Last_Name}`,

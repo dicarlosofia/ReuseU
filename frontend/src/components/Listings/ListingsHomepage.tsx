@@ -275,7 +275,7 @@ export default function ListingsHomepage() {
         </div>
 
         <div className="flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid gap-6 justify-center bg-cyan-50 w-full max-w-full" style={{gridTemplateColumns:'repeat(auto-fit, minmax(340px, 1fr))'}}>
             {/*
               Listing receives UserID and ListingID from each listing.
               The Listing component is responsible for fetching the username using UserID

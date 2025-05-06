@@ -136,7 +136,7 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
 
   // Main listing card layout
   return (
-    <div className={`flex flex-row bg-white rounded-lg shadow-sm border p-4 gap-4 h-[180px] relative transition-opacity duration-300 ${
+    <div className={`flex flex-col md:flex-row bg-white rounded-lg shadow-sm border p-4 gap-4 md:h-[180px] relative transition-opacity duration-300 w-full max-w-full md:max-w-md overflow-hidden ${
       isRemoved ? 'opacity-0' : 'opacity-100'
     }`}>
       {showDeleteSuccess && (
@@ -146,21 +146,16 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
       )}
 
       {/* Image container */}
-      <div className="w-1/4 aspect-square bg-lime-100 rounded-lg">
+      <div className="w-full md:w-1/4 aspect-square bg-lime-100 rounded-lg flex-shrink-0">
         {image && <img src={image} alt={title} className="text-cyan-300 w-full h-full object-cover rounded-lg" />}
       </div>
 
       {/* Content container */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <h3
-          className="text-cyan-800 text-lg font-semibold line-clamp-1 mb-2 cursor-pointer hover:underline"
-          onClick={() => handleTitleClick(title)}
-        >
-          {title}
-        </h3>
-
+      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-hidden">
+        {/* Title always above tags */}
+        <div className="font-bold text-lg text-cyan-950 cursor-pointer hover:underline mb-1 truncate max-w-full" style={{maxWidth:'100%'}} onClick={() => handleTitleClick(title)}>{title}</div>
         {/* Tags display */}
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap gap-2 mb-2 max-w-full overflow-hidden">
           {Array.isArray(tags) && tags.map((tag, index) => (
             <span key={index} className="px-2 py-0.5 bg-lime-300 rounded text-sm text-cyan-950">
               {tag}
@@ -168,13 +163,12 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
           ))}
         </div>
 
-        {/* Description preview */}
-        <p className="text-cyan-800 text-sm line-clamp-2 flex-grow">{desc}</p>
+        <p className="text-cyan-800 text-sm line-clamp-2 flex-grow truncate-description" style={{display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{desc}</p>
       </div>
 
       {/* Price and buttons section */}
-      <div className="w-20 flex flex-col items-end justify-between">
-        <div className="text-lime-700 text-lg font-bold">${price.toFixed(2)}</div>
+      <div className="w-20 flex flex-col items-end justify-between max-w-full overflow-hidden">
+        <div className="text-gray-700 text-sm mb-2 truncate-description" style={{display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>${price.toFixed(2)}</div>
         <div className="flex flex-col gap-2">
           <button 
             onClick={onFavoriteClick}
