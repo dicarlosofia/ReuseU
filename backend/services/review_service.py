@@ -76,11 +76,30 @@ class ReviewService:
             raise DatabaseError(f"Failed to get all reviews: {e}")
         
     
-    def get_sellers_reviews(self, seller_id: str) -> Dict[str, Any]:
+    def get_sellers_reviews(self, seller_id: int) -> Dict[str, Any]:
         '''Get all reviews associated with the seller.'''
         try:
-            reviews = self.ref.order_by_child("sellerId").equal_to(seller_id)
-            return reviews
+            reviews = self.ref.child('Review').get()
+            if not reviews:
+                raise NotFoundError("No reviews found.")
+            return [r for r in reviews.values() if r is not None and r["SellerID"] == seller_id]
+        except ServiceError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to get all reviews: {e}")
+        
+    def get_sellers_stars(self, seller_id: int) -> Dict[str, Any]:
+        '''Get start rating of the seller.'''
+        try:
+            reviews_filtered = get_sellers_reviews(seller_id)
+            if not reviews_filtered:
+                return None
+            number_revs = len(reviews_filtered)
+            sum_revs = 0
+            for data_dict in reviews_filtered:
+                sum_revs += data_dict['Rating']
+            stars = float(sum_revs)/ float(number_revs)
+            return stars
         except ServiceError:
             raise
         except Exception as e:
@@ -93,8 +112,13 @@ del_review = review_service.del_review
 get_review = review_service.get_review
 get_all_reviews = review_service.get_all_reviews
 get_sellers_reviews = review_service.get_sellers_reviews
+get_sellers_stars = review_service.get_sellers_stars
 
 
-get_sellers_reviews("27350")
+print(get_sellers_reviews())
+print(get_sellers_stars())
+
+
+
 
 
