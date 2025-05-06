@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify, request
 from services import review_service
-
-reviews_bp = Blueprint('reviews_bp', __name__)
-
 from services.jwt_middleware import jwt_required
+import logging
+
+reviews_bp = Blueprint('reviews_bp', __name__, url_prefix='/api/reviews')
+logger = logging.getLogger(__name__)
+
 
 @reviews_bp.route('/<string:listing_id>', methods=['GET'])
 @jwt_required
