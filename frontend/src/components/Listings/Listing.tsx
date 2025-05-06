@@ -7,6 +7,7 @@ import { useGlobalContext } from "@/Context/GlobalContext";
 import { chatsApi } from "@/pages/api/chats";
 import { useChat } from '@/Context/ChatContext';
 import { GlobalChatRefContext } from '@/pages/_app';
+import { accountsApi } from "@/pages/api/accounts";
 
 /**
  * Listing Component
@@ -93,9 +94,9 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
         return;
       }
       const token = await user.getIdToken();
+      // Backend expects only listing_id and seller_id; buyer is inferred from JWT
       const newChat = await chatsApi.create({
         listing_id: String(ListingID),
-        buyer_id: String(currentUserId),
         seller_id: String(UserID)
       }, token);
       openChat(newChat);
@@ -107,8 +108,30 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
     }
   };
 
-  const handleViewProfile = () => {
-    router.push(`/profile/${UserID}`);
+  const handleViewProfile = async () => {
+    try {
+      // Fetch account by UserID (from listing)
+      if (!user) {
+        return;
+      }
+      const token = await user.getIdToken();
+      let data = null;
+      try {
+        data = await accountsApi.getAccountByUsername(UserID, token);
+        console.log(data);
+      } catch (err) {
+        console.error('Account not found for user:', UserID, err);
+        router.push('/404'); // or show a not found page
+        return;
+      }
+      if (data && data.Username) {
+        router.push(`/profile/${data.Username}`);
+      } else {
+        router.push('/404');
+      }
+    } catch (error) {
+      console.error('Error viewing profile:', error);
+    }
   };
 
   // Main listing card layout

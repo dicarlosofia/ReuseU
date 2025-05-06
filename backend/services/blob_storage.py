@@ -103,6 +103,10 @@ def upload_files_to_bucket(s3_resource, listing_id, data_bytes_list):
     listing_indicator = "x%Tz^Lp&"
     name_indicator = "*Gh!mN?y"
 
+    def pad_base64(b64_string):
+        """Pad base64 string to correct length for decoding."""
+        return b64_string + '=' * (-len(b64_string) % 4)
+
     uploaded_keys = []
     name_counter = 1
     for data_bytes in data_bytes_list:
@@ -110,7 +114,8 @@ def upload_files_to_bucket(s3_resource, listing_id, data_bytes_list):
             # Remove data URL prefix if present
             if data_bytes.startswith('data:image'):
                 data_bytes = data_bytes.split(',')[1]
-            data_bytes = base64.b64decode(data_bytes)
+            # Ensure correct base64 padding before decoding
+            data_bytes = base64.b64decode(pad_base64(data_bytes))
         key = listing_indicator + str(listing_id) + name_indicator + str(name_counter)
         bucket.put_object(Key=key, Body=data_bytes)
         uploaded_keys.append(key)

@@ -13,3 +13,7 @@ class ValidationError(ServiceError):
 class DatabaseError(ServiceError):
     """Database operation failed."""
     pass
+
+class PermissionDeniedError(ServiceError):
+    """Raised when a user attempts an action they do not have permission for."""
+    pass

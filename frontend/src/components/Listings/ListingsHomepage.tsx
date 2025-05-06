@@ -195,7 +195,7 @@ export default function ListingsHomepage() {
 
   if (filteredListings.length === 0) {
     return (
-      <div className="min-h-screen pt-20 bg-cyan-100">
+      <div className="min-h-screen pt-10 bg-cyan-100">
         <div className="flex gap-8 max-w-7xl mx-auto px-4">
           <div className="w-64 shrink-0">
             <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
@@ -241,7 +241,7 @@ export default function ListingsHomepage() {
   }
 
   return (
-    <div className="min-h-screen pt-20 bg-cyan-100">
+    <div className="min-h-screen pt-4 rounded-lg bg-cyan-100">
       <div className="flex gap-8 max-w-7xl mx-auto px-4">
         <div className="w-64 shrink-0">
           <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
@@ -276,6 +276,11 @@ export default function ListingsHomepage() {
 
         <div className="flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/*
+              Listing receives UserID and ListingID from each listing.
+              The Listing component is responsible for fetching the username using UserID
+              and routing to /profile/{username} when the profile button is clicked.
+            */}
             {displayedListings.map((listing) => (
               <Listing
                 key={listing.ListingID}

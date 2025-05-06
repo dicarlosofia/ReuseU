@@ -28,7 +28,7 @@ const ProfileSection: React.FC = () => {
         setProfileData({
           username: account.Username,
           name: `${account.First_Name} ${account.Last_Name}`,
-          email: account.Email || "",
+          email: account.email || "",
           pronouns: account.Pronouns || "",
           aboutMe: account.AboutMe || "",
         });
@@ -44,7 +44,7 @@ const ProfileSection: React.FC = () => {
           setProfileData({
             username: data.Username,
             name: `${data.First_Name} ${data.Last_Name}`,
-            email: data.Email || "",
+            email: data.email || "",
             pronouns: data.Pronouns || "",
             aboutMe: data.AboutMe || "",
           });
@@ -79,7 +79,7 @@ const ProfileSection: React.FC = () => {
 
       await accountsApi.updateAccount(user.uid, {
         Username: newData.username,
-        Email: newData.email,
+        email: newData.email,
         Pronouns: newData.pronouns,
         AboutMe: newData.aboutMe,
         First_Name: firstName,

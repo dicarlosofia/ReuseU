@@ -9,6 +9,7 @@ import {
   ArrowRightEndOnRectangleIcon,
 } from "@heroicons/react/24/solid";
 import { RecycleIcon } from "lucide-react";
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export default function Dashboard() {
     setShowSettings(false);
     router.push('/login');
   };
+  // SOFIA ADDITION
+  const handleAboutUs = () => router.push('/abt_us')
 
   return (
     <div className="flex items-center fixed top-0 left-0 w-full h-16 bg-lime-800 text-white shadow-md z-50">
@@ -88,10 +91,18 @@ export default function Dashboard() {
           <div className="absolute right-0 top-full mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
             >
               <ArrowRightEndOnRectangleIcon className="h-5 w-5 mr-2 text-gray-700" />
               Log Out
+            </button>
+            {/* Button to take the user to the About Us page */}
+            <button
+              onClick={handleAboutUs}
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+            >
+              <InformationCircleIcon className="h-5 w-5 mr-2 text-gray-700" />
+              About Us
             </button>
           </div>
         )}

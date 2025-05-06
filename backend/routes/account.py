@@ -1,4 +1,9 @@
+<<<<<<< fix-opencv
 git # routes/accounts.py
+=======
+# routes/accounts.py
+# Account-related API endpoints.
+>>>>>>> main
 from flask import Blueprint, jsonify, request
 from services.account_service import account_service
 from services.exceptions import NotFoundError, DatabaseError
@@ -8,9 +13,13 @@ accounts_bp = Blueprint('accounts', __name__, url_prefix='/api/accounts')
 
 @accounts_bp.route('/<string:account_id>', methods=['GET'])
 @jwt_required
-def get_account(current_user, account_id):
+def get_account(account_id):
+    # User context is available via flask.g
     try:
-        data = account_service.get_acc(account_id)
+        try:
+            data = account_service.get_acc(account_id)
+        except NotFoundError:
+            data = account_service.get_acc_by_username(account_id)
         return jsonify(data), 200
     except NotFoundError as e:
         return jsonify({"message": str(e)}), 404
@@ -19,7 +28,8 @@ def get_account(current_user, account_id):
 
 @accounts_bp.route('/', methods=['POST'])
 @jwt_required
-def create_account(current_user):
+def create_account():
+    # User context is available via flask.g
     payload = request.get_json() or {}
     try:
         new_id = account_service.add_account(payload)
@@ -32,7 +42,8 @@ def create_account(current_user):
 
 @accounts_bp.route('/<string:account_id>', methods=['DELETE'])
 @jwt_required
-def delete_account(current_user, account_id):
+def delete_account(account_id):
+    # User context is available via flask.g
     try:
         account_service.delete_acc(account_id)
         return jsonify({"message": f"Account {account_id} deleted"}), 200
@@ -43,7 +54,8 @@ def delete_account(current_user, account_id):
 
 @accounts_bp.route('/<string:account_id>', methods=['PUT'])
 @jwt_required
-def update_account(current_user, account_id):
+def update_account(account_id):
+    # User context is available via flask.g
     payload = request.get_json() or {}
     try:
         updated_account = account_service.update_acc(account_id, payload)

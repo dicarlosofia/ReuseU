@@ -44,7 +44,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, in
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-cyan-800 bg-opacity-50 z-50">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl border-t-4 border-lime-600">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">

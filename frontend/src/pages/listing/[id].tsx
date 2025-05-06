@@ -69,7 +69,7 @@ const ListingPage: NextPage = () => {
 
   console.log('[ListingPage] Rendering listing:', listing);
   return (
-    <div>
+    <div className="bg-cyan-800">
       <Dashboard />
       <FullListing
         title={listing.Title}

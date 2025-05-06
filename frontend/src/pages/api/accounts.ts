@@ -15,9 +15,13 @@ export interface AccountData {
   School: string;
   Username: string;
   dateTime_creation: string;
-  Email: string;
   Pronouns: string;
   AboutMe: string;
+  /**
+   * Lowercase email field for backend compatibility. Not required for frontend use,
+   * but must be included in payloads sent to backend.
+   */
+  email?: string;
 }
 
 export interface Chat {
@@ -37,6 +41,10 @@ export const accountsApi = {
     });
     if (!response.ok) throw new Error("Failed to fetch account");
     return response.json();
+  },
+  // Explicit username-based lookup (calls same endpoint, but clearer intent)
+  getAccountByUsername: async (username: string, token: string) => {
+    return accountsApi.getAccount(username, token);
   },
 
   createAccount: async (accountData: AccountData, token: string) => {

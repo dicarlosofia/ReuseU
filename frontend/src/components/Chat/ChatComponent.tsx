@@ -85,7 +85,7 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       setLoadingChats(true);
       try {
         const token = await user.getIdToken();
-        const { chats: apiChats }: { chats: ApiChat[] } = await chatsApi.getByUserId(user.uid, token);
+        const { chats: apiChats }: { chats: ApiChat[] } = await chatsApi.getByUserId(token);
         console.log(apiChats);
         // Dedupe by id
         const unique = apiChats.filter((c, i, a) => a.findIndex(x => x.id === c.id) === i);
