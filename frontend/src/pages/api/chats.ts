@@ -19,9 +19,9 @@ export interface Chat {
 }
 
 export const chatsApi = {
-  // Get all chats for a user
-  getByUserId: async (userId: string, token: string) => {
-    const response = await fetch(`${API_BASE_URL}/chats/user/${userId}`, {
+  // Get all chats for the authenticated user (JWT required)
+  getByUserId: async (token: string) => {
+    const response = await fetch(`${API_BASE_URL}/chats/user`, {
       headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch chats');

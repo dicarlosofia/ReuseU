@@ -168,6 +168,18 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         return base64Index !== -1 ? img.substring(base64Index + 7) : img;
       });
   
+      // Convert images to required dictionary format: { filename: base64 }
+      const imagesDict: Record<string, string> = {};
+      photos.forEach((file, i) => {
+        imagesDict[file.name || `image${i}.jpg`] = cleanBase64Images[i];
+      });
+
+      // Validate required fields
+      if (!title || !description || !price || !selectedTags.length || !Object.keys(imagesDict).length) {
+        alert('All fields and at least one image are required.');
+        return;
+      }
+
       const listingData: ListingData = {
         Title: title,
         Description: description,
@@ -175,9 +187,9 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         Category: selectedTags,
         UserID: user.uid,
         SellStatus: 1,
-        Images: cleanBase64Images,
+        Images: imagesDict as any, // backend expects dict, not array
       };
-  
+
       listingSubmit(listingData);
     } catch (error) {
       console.error('Error preparing listing data:', error);
