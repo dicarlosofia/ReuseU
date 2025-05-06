@@ -74,6 +74,17 @@ class ReviewService:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to get all reviews: {e}")
+        
+    
+    def get_sellers_reviews(self, seller_id: str) -> Dict[str, Any]:
+        '''Get all reviews associated with the seller.'''
+        try:
+            reviews = self.ref.order_by_child("sellerId").equal_to(seller_id)
+            return reviews
+        except ServiceError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to get all reviews: {e}")
 
 # Default instance
 review_service = ReviewService()
@@ -81,3 +92,9 @@ add_review = review_service.add_review
 del_review = review_service.del_review
 get_review = review_service.get_review
 get_all_reviews = review_service.get_all_reviews
+get_sellers_reviews = review_service.get_sellers_reviews
+
+
+get_sellers_reviews("27350")
+
+
