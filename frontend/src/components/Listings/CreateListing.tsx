@@ -307,18 +307,19 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Title and tags section */}
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 mb-4 max-w-full overflow-hidden">
             <div className="w-2/3 flex items-center gap-2">
               <label htmlFor="title" className="text-cyan-800 block text-lg mb-2">
                 Listing Title:
               </label>
               <input
                 type="text"
-                id="title"
+                className="border rounded px-3 py-2 w-full mb-2 truncate"
+                placeholder="Title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Default Item"
-                className="w-3/5  text-cyan-800 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
+                onChange={e => setTitle(e.target.value)}
+                maxLength={100}
+                style={{maxWidth:'100%'}}
               />
             </div>
             
@@ -327,7 +328,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
               <label className="text-cyan-800 block text-lg mb-2">
                 Chosen Tags:
               </label>
-              <div className="text-cyan-800 border rounded p-2 min-h-[40px]">
+              <div className="text-cyan-800 border rounded p-2 min-h-[40px] flex flex-wrap gap-2">
                 {selectedTags.map((tag) => (
                   <span 
                     key={tag} 
@@ -365,11 +366,12 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
               Description:
             </label>
             <textarea
-              id="description"
+              className="border rounded px-3 py-2 w-full mb-4 truncate-description"
+              placeholder="Description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your item..."
-              className="text-cyan-800 w-full h-32 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
+              onChange={e => setDescription(e.target.value)}
+              maxLength={500}
+              style={{maxWidth:'100%',minHeight:'48px',overflow:'hidden',resize:'vertical'}}
             />
           </div>
 
@@ -393,7 +395,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
             <label className="text-cyan-800 block text-lg mb-2">
               Photos:
             </label>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-2 mb-4 max-w-full overflow-hidden">
               <div className="w-1/2">
                 <input
                   type="file"

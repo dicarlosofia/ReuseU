@@ -16,10 +16,10 @@ export default function Dashboard() {
   const { logout } = useGlobalContext();
   const [showSettings, setShowSettings] = useState(false);
 
-  // Navigation helpers
+  // Navigation helpersf
   const handleReuseClick = () => router.push('/');
   const handleMakeAListingClick = () => router.push('/create');
-  const handleUserCircleClick = () => router.push('/profile');
+  const handleUserCircleClick = () => router.push('/my_profile');
   const handleCogClick = () => setShowSettings(!showSettings);
   const handleLogout = () => {
     logout();

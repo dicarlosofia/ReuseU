@@ -54,20 +54,40 @@ export function Dropdown() {
     "Above $500"
   ];
 
-  const handleCategoryToggle = (category: string) => {
+  // Toggle a subcategory (checkbox)
+  const handleSubcategoryToggle = (subcategory: string) => {
     const currentCategories = filters?.categories || [];
-    if (currentCategories.includes(category)) {
+    if (currentCategories.includes(subcategory)) {
       setFilters({
         ...filters,
-        categories: currentCategories.filter((c: string) => c !== category)
+        categories: currentCategories.filter((c: string) => c !== subcategory)
       });
     } else {
       setFilters({
         ...filters,
-        categories: [...currentCategories, category]
+        categories: [...currentCategories, subcategory]
       });
     }
   };
+
+  // Toggle all subcategories for a main category
+  const handleCategoryToggle = (category: CategoryGroup) => {
+    const allSelected = category.subcategories.every(sub => (filters?.categories || []).includes(sub));
+    if (allSelected) {
+      // Remove all subcategories
+      setFilters({
+        ...filters,
+        categories: (filters?.categories || []).filter((c: string) => !category.subcategories.includes(c))
+      });
+    } else {
+      // Add any missing subcategories
+      setFilters({
+        ...filters,
+        categories: Array.from(new Set([...(filters?.categories || []), ...category.subcategories]))
+      });
+    }
+  };
+
 
   const handlePriceRangeToggle = (priceRange: string) => {
     const currentPriceRanges = filters?.priceRanges || [];
@@ -106,42 +126,35 @@ export function Dropdown() {
         </button>
 
         {isCategoryOpen && (
-          <div className="p-3">
-            <div className="space-y-2">
-              {categoryGroups.map((group) => (
-                <div key={group.name} className="border-b border-cyan-600 last:border-0 pb-2 last:pb-0">
-                  <button
-                    className="flex items-center justify-between w-full p-2 hover:bg-cyan-100 rounded-lg transition-colors"
-                    onClick={() => setExpandedCategory(expandedCategory === group.name ? null : group.name)}
-                  >
-                    <span className="font-medium text-emerald-700">{group.name}</span>
-                    {expandedCategory === group.name ? (
-                      <ChevronUpIcon className="h-4 w-4 text-lime-700" />
-                    ) : (
-                      <ChevronDownIcon className="h-4 w-4 text-lime-700" />
-                    )}
-                  </button>
-                  
-                  {expandedCategory === group.name && (
-                    <div className="pl-4 mt-2 space-y-1">
-                      {group.subcategories.map((subcategory) => (
-                        <label key={subcategory} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={filters?.categories?.includes(subcategory) || false}
-                            onChange={() => handleCategoryToggle(subcategory)}
-                            className="form-checkbox h-4 w-4 text-lime-700 rounded"
-                          />
-                          <span className={filters?.categories?.includes(subcategory) ? "text-emerald-700" : "text-gray-600"}>
-                            {subcategory}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+          <div className="p-4 bg-white">
+            {categoryGroups.map((group) => (
+              <div key={group.name} className="mb-2">
+                <button
+                  className="flex items-center w-full text-left font-semibold text-cyan-900 hover:bg-cyan-50 px-2 py-1 rounded"
+                  onClick={() => handleCategoryToggle(group)}
+                  type="button"
+                >
+                  <span className="flex-1">{group.name}</span>
+                  <span className="ml-2 text-xs text-cyan-700">
+                    {group.subcategories.every(sub => (filters?.categories || []).includes(sub)) ? "(All)" : ""}
+                  </span>
+                  <ChevronDownIcon className="ml-2 h-4 w-4" />
+                </button>
+                <div className="pl-4 flex flex-wrap gap-2 mt-1">
+                  {group.subcategories.map((sub) => (
+                    <label key={sub} className="flex items-center gap-1 bg-lime-100 rounded px-2 py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(filters?.categories || []).includes(sub)}
+                        onChange={() => handleSubcategoryToggle(sub)}
+                        className="accent-lime-600"
+                      />
+                      <span className="text-cyan-900 text-sm">{sub}</span>
+                    </label>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
