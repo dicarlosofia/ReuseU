@@ -12,11 +12,12 @@
  * It includes real-time message updates and a simulated response system.
  */
 
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef, RefObject } from 'react';
 import { ChevronDownIcon, UserCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
 import { useGlobalContext } from '@/Context/GlobalContext';
 import { chatsApi, Message as ApiMessage } from '@/pages/api/chats';
+import { io, Socket } from 'socket.io-client';
 
 // Matches backend response shape
 export interface ApiChat {
@@ -35,7 +36,6 @@ export interface ApiChat {
 // Props for component initialization
 interface ChatComponentProps {
   listingId?: string;
-  listingTitle?: string;
 }
 
 // Local UI chat structure
@@ -66,8 +66,10 @@ interface MinimalMessage {
   created_at: string;
 }
 
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+
 const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>(
-  ({ listingId, listingTitle }, ref) => {
+  ({ listingId }, ref) => {
     const { user, account } = useGlobalContext();
     const router = useRouter();
 
@@ -77,6 +79,8 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     const [newMessage, setNewMessage] = useState('');
     const [loadingChats, setLoadingChats] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
+    const [listingTitle, setListingTitle] = useState<string>('');
 
     // Fetch user's chats from backend
     const fetchChats = useCallback(async () => {
@@ -86,10 +90,9 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       try {
         const token = await user.getIdToken();
         const { chats: apiChats }: { chats: ApiChat[] } = await chatsApi.getByUserId(token);
-        console.log(apiChats);
         // Dedupe by id
         const unique = apiChats.filter((c, i, a) => a.findIndex(x => x.id === c.id) === i);
-        setChats(unique.map(c => ({
+        const initialChats = unique.map(c => ({
           id: c.id,
           listing_id: c.listing_id,
           participant: {
@@ -98,9 +101,21 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             id: '',
           },
           unreadCount: 0,
-          lastMessageTime: c.last_message?.timestamp || '',
-          title: `Chat about Listing ${c.listing_id}`,
-        })));
+          lastMessageTime: c.last_message?.timestamp ? formatTimestamp(c.last_message.timestamp) : '',
+          title: '', // will be set after fetching listing title
+        }));
+        setChats(initialChats);
+        // Fetch listing titles for each chat
+        await Promise.all(initialChats.map(async (chat) => {
+          if (chat.listing_id) {
+            try {
+              const listing = await (await import('@/pages/api/listings')).listingsApi.getById(chat.listing_id, token);
+              if (listing && listing.Title) {
+                setChats(prev => prev.map(c => c.id === chat.id ? { ...c, title: listing.Title } : c));
+              }
+            } catch {}
+          }
+        }));
       } catch (error) {
         console.error('Failed to fetch chats', error);
       } finally {
@@ -109,11 +124,29 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     }, [listingId, user, account]);
 
     // Open a specific chat and load its messages
-    const openChat = async (chat: Chat) => {
+    const openChat = useCallback(async (chat: Chat) => {
       try {
         if (!user) {
           console.error('User not authenticated');
           return;
+        }
+        // Fetch the listing title by listing_id if present
+        if (chat.listing_id) {
+          try {
+            const token = await user.getIdToken();
+            const listing = await (await import('@/pages/api/listings')).listingsApi.getById(chat.listing_id, token);
+            if (listing && listing.Title) {
+              setListingTitle(listing.Title);
+              // Update chat preview title in chats list
+              setChats(prevChats => prevChats.map(c =>
+                c.id === chat.id ? { ...c, title: listing.Title } : c
+              ));
+            }
+          } catch (e) {
+            setListingTitle('');
+          }
+        } else {
+          setListingTitle('');
         }
         const token = await user.getIdToken();
         const full = await chatsApi.getById(chat.id, token);
@@ -121,7 +154,6 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
         setIsCollapsed(false);
         if (user?.uid && full.messages) {
           // Map backend fields to expected format for adaptMessage
-          // Define a type for the backend message shape
           type BackendMessage = {
             id: string;
             sender_id: string;
@@ -138,19 +170,27 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             .filter((m: AdaptedMessage | null): m is AdaptedMessage => m !== null);
           setAdaptedMessages(adapted);
         }
+        // Join websocket room for this chat
+        if (socketRef.current && chat.id) {
+          socketRef.current.emit('join', { room: chat.id });
+        }
       } catch (error) {
         console.error('Failed to open chat', error);
       }
-    };
+    }, [user]);
 
     // Close current chat view
-    const closeChat = () => {
+    const closeChat = useCallback(() => {
+      if (selectedChat && socketRef.current) {
+        socketRef.current.emit('leave', { room: selectedChat.id });
+      }
       setSelectedChat(null);
       setAdaptedMessages([]);
-    };
+    }, [selectedChat]);
+
 
     // Send a new message
-    const handleSendMessage = async (chatId: string, e: React.FormEvent) => {
+    const handleSendMessage = useCallback(async (chatId: string, e: React.FormEvent) => {
       e.preventDefault();
       if (!newMessage.trim() || !user?.uid) return;
       try {
@@ -158,22 +198,27 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
           console.error('User not authenticated');
           return;
         }
+        // Send via websocket
+        if (socketRef.current) {
+          socketRef.current.emit('send_message', {
+            room: chatId,
+            message: newMessage,
+            sender: user.uid,
+          });
+        }
+        // Still persist to backend for durability
         const token = await user.getIdToken();
         await chatsApi.sendMessage({
           chat_id: chatId,
           sender_id: user.uid,
           content: newMessage,
         }, chatId, token);
-        // Optimistic UI update
-        setAdaptedMessages(prev => [
-          ...prev,
-          { text: newMessage, sender: 'user', timestamp: new Date().toISOString() },
-        ]);
         setNewMessage('');
       } catch (error) {
         console.error('Failed to send message', error);
       }
-    };
+    }, [newMessage, user]);
+
 
     // Toggle collapse/expand of chat body
     const toggleCollapse = () => {
@@ -181,11 +226,16 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     };
 
     // Determine header title
-    const headerTitle = selectedChat
-      ? `Chat with ${selectedChat.participant.name}`
-      : listingTitle
+    const headerTitle = selectedChat && listingTitle
       ? `Chat about ${listingTitle}`
       : 'Chats';
+
+
+    // Format timestamps as YYYY-MM-DD HH:mm
+    const formatTimestamp = (ts: string) => {
+      const date = new Date(ts);
+      return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+    };
 
     // Convert API message to UI message
     const adaptMessage = (msg: MinimalMessage, currentUserId: string): AdaptedMessage | null => {
@@ -193,11 +243,51 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       return {
         text: msg.content,
         sender: msg.sender_id === currentUserId ? 'user' : 'other',
-        timestamp: msg.created_at,
+        timestamp: formatTimestamp(msg.created_at),
       };
     };
 
+
     useImperativeHandle(ref, () => ({ fetchChats }));
+
+    // WebSocket connection and listeners
+    useEffect(() => {
+      if (!socketRef.current) {
+        socketRef.current = io(SOCKET_URL + '/chat', { transports: ['websocket'], 
+          auth: {
+            token: user?.getIdToken(),  // Firebase ID token
+          },
+        });
+      }
+      const socket = socketRef.current;
+      const onReceiveMessage = (data: { message: string; sender: string; timestamp?: string }) => {
+        setAdaptedMessages(prev => [
+          ...prev,
+          {
+            text: data.message,
+            sender: data.sender === user?.uid ? 'user' : 'other',
+            timestamp: formatTimestamp(data.timestamp || new Date().toISOString()),
+          },
+        ]);
+      };
+      socket.on('receive_message', onReceiveMessage);
+      return () => {
+        socket.off('receive_message', onReceiveMessage);
+      };
+    }, [user?.uid]);
+
+    // Clean up socket connection on unmount
+    useEffect(() => {
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      };
+    }, []);
+
+    // Reference for autoscroll
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Always load chats on mount and when user/account changes
     useEffect(() => {
@@ -205,6 +295,13 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
         fetchChats();
       }
     }, [user, account, fetchChats]);
+
+    // Scroll to bottom when a chat is opened or messages change
+    useEffect(() => {
+      if (selectedChat && messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, [selectedChat, adaptedMessages]);
 
     return (
       <div className="fixed bottom-4 right-4 z-50 w-96">
@@ -234,25 +331,9 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
               loadingChats ? (
                 /* Loading spinner */
                 <div className="flex items-center justify-center h-32">
-                  <svg
-                    className="animate-spin h-8 w-8 text-cyan-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8z"
-                    />
+                  <svg className="animate-spin h-8 w-8 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
                 </div>
               ) : (
@@ -286,38 +367,31 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             ) : (
               /* Selected chat view */
               <>
-                <div className="h-72 overflow-y-auto p-4">
+                <div className="h-72 overflow-y-auto p-4" id="chat-messages-container">
                   {adaptedMessages.map((message, i) => (
-                    <div
-                      key={i}
-                      className={`mb-4 ${
-                        message.sender === 'user' ? 'text-right' : 'text-left'
-                      }`}
-                    >
-                      <div
-                        className={`inline-block p-2 rounded-lg ${
-                          message.sender === 'user'
-                            ? 'bg-cyan-600 text-white'
-                            : 'bg-gray-200 text-cyan-950'
-                        }`}
-                      >
+                    <div key={i} className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                      <div className={`inline-block p-2 rounded-lg ${
+                        message.sender === 'user' ? 'bg-cyan-600 text-white' : 'bg-gray-200 text-cyan-950'
+                      }`}>
                         {message.text}
                         <span className="text-xs block mt-1">{message.timestamp}</span>
                       </div>
                     </div>
                   ))}
+                  {/* 🔻 THIS is the scroll anchor */}
+                  <div ref={messagesEndRef} />
                 </div>
                 {/* Message input */}
                 <form
                   className="text-cyan-700 flex items-center gap-2 p-4 border-t bg-cyan-50 rounded-b-lg"
-                  onSubmit={e => handleSendMessage(selectedChat.id, e)}
+                  onSubmit={(e: React.FormEvent) => handleSendMessage(selectedChat.id, e)}
                 >
                   <input
                     type="text"
                     className="bg-white border-cyan-800 flex-1 rounded border px-3 py-2"
                     placeholder="Type a message..."
                     value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
+                    onChange={e => setNewMessage((e.target as HTMLInputElement).value)}
                     autoFocus
                   />
                   <button type="submit" className="bg-cyan-600 text-white rounded px-4 py-2">

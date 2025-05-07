@@ -19,7 +19,7 @@ export default function Dashboard() {
   // Navigation helpers
   const handleReuseClick = () => router.push('/');
   const handleMakeAListingClick = () => router.push('/create');
-  const handleUserCircleClick = () => router.push('/profile');
+  const handleUserCircleClick = () => router.push('/my_profile');
   const handleCogClick = () => setShowSettings(!showSettings);
   const handleLogout = () => {
     logout();

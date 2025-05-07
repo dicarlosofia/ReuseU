@@ -25,7 +25,7 @@ import { useRouter } from 'next/router';
 
 function InnerApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const isPublic = router.pathname === '/login' || router.pathname === '/signup';
+  const isPublic = ['/login', '/signup', '/forgot'].includes(router.pathname);
   const chatRef = useRef<{ fetchChats: () => void } | null>(null);
   const { user, loading } = useGlobalContext();
   console.log('isPublic', isPublic, 'user', user, 'loading', loading);

@@ -141,7 +141,6 @@ export default function FullListing({
       {showChatComponent && (
         <ChatComponent
           listingId={listingId}
-          listingTitle={title}
         />
       )}
       {title && (<>

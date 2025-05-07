@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User
 } from 'firebase/auth'
 import { auth } from '../lib/firebase'
@@ -31,6 +32,7 @@ interface GlobalContextType {
   setTitle: (title: string) => void
   listings: any[]
   setListings: (listings: any[]) => void
+  requestPasswordReset: (email: string) => Promise<void>
 }
 
 const GlobalContext = createContext<GlobalContextType>({} as any)
@@ -161,6 +163,20 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }
 
+  // Password reset
+  const requestPasswordReset = async (email: string) => {
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <GlobalContext.Provider
       value={{
@@ -169,7 +185,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loading,
         error,
         signInWithEmail,
-        signUpWithEmail,  // ← here
+        signUpWithEmail,
         logout,
         filters,
         setFilters,
@@ -177,6 +193,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTitle,
         listings,
         setListings,
+        requestPasswordReset,
       }}
     >
       {children}

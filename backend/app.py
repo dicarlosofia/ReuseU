@@ -1,5 +1,9 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from routes.listing import listings_bp
 from routes.review import reviews_bp
 from routes.chat import chats_bp
@@ -44,6 +48,28 @@ def create_app():
     return app
 
 app = create_app()
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"], async_mode="eventlet")
+
+# Example: handle chat messages
+@socketio.on('send_message', namespace='/chat')
+def handle_send_message(data):
+    # data should contain: {room, message, sender}
+    room = data.get('room')
+    message = data.get('message')
+    sender = data.get('sender')
+    emit('receive_message', {'message': message, 'sender': sender}, room=room)
+
+@socketio.on('join', namespace='/chat')
+def handle_join(data):
+    room = data.get('room')
+    join_room(room)
+    emit('user_joined', {'room': room}, room=room)
+
+@socketio.on('leave', namespace='/chat')
+def handle_leave(data):
+    room = data.get('room')
+    leave_room(room)
+    emit('user_left', {'room': room}, room=room)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

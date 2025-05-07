@@ -7,6 +7,7 @@ import uuid
 
 from . import blob_storage
 from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError, PermissionDeniedError
+from services import listing_report_service
 
 logger = logging.getLogger(__name__)
 

@@ -275,7 +275,8 @@ export default function ListingsHomepage() {
         </div>
 
         <div className="flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
             {/*
               Listing receives UserID and ListingID from each listing.
               The Listing component is responsible for fetching the username using UserID

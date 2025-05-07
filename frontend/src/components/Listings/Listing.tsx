@@ -135,42 +135,109 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
   };
 
   // Main listing card layout
+  // Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReportError(null);
+    setReportLoading(true);
+    try {
+      if (!user) throw new Error('You must be logged in to report.');
+      const token = await user.getIdToken();
+      // @ts-ignore
+      const { reportApi } = await import('@/pages/api/report');
+      await reportApi.reportListing(ListingID, reportReason, reportDescription, token);
+      setReportSuccess(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportSuccess(false);
+        setReportReason('');
+        setReportDescription('');
+      }, 1800);
+    } catch (err: any) {
+      setReportError(err.message || 'Failed to submit report.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   return (
-    <div className={`flex flex-row bg-white rounded-lg shadow-sm border p-4 gap-4 h-[180px] relative transition-opacity duration-300 ${
-      isRemoved ? 'opacity-0' : 'opacity-100'
-    }`}>
+    <>
+      <div
+        className={`group flex flex-col sm:flex-row bg-white rounded-lg shadow-sm border p-3 sm:p-4 gap-2 sm:gap-4 min-h-[120px] sm:h-[180px] relative transition-opacity duration-300 ${
+          isRemoved ? 'opacity-0' : 'opacity-100'
+        } cursor-pointer sm:cursor-default`}
+        tabIndex={0}
+        role="button"
+        aria-label={`View listing: ${title}`}
+        onClick={() => {
+          if (window.innerWidth < 640) handleTitleClick(title);
+        }}
+        onKeyPress={e => {
+          if (window.innerWidth < 640 && (e.key === 'Enter' || e.key === ' ')) handleTitleClick(title);
+        }}
+      >
       {showDeleteSuccess && (
         <div className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-lg z-10">
           <span className="text-white font-semibold">Listing deleted successfully!</span>
         </div>
       )}
-
       {/* Image container */}
       <div className="w-1/4 aspect-square bg-lime-100 rounded-lg">
         {image && <img src={image} alt={title} className="text-cyan-300 w-full h-full object-cover rounded-lg" />}
       </div>
 
-      {/* Content container */}
+      {/* Content container - improved responsive layout */}
       <div className="flex-1 flex flex-col min-w-0">
         <h3
-          className="text-cyan-800 text-lg font-semibold line-clamp-1 mb-2 cursor-pointer hover:underline"
+          className="text-cyan-800 text-lg font-semibold mb-1 cursor-pointer hover:underline break-words whitespace-normal"
           onClick={() => handleTitleClick(title)}
+          title={title}
+          style={{ wordBreak: 'break-word' }}
         >
           {title}
         </h3>
-
-        {/* Tags display */}
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {Array.isArray(tags) && tags.map((tag, index) => (
-            <span key={index} className="px-2 py-0.5 bg-lime-300 rounded text-sm text-cyan-950">
-              {tag}
-            </span>
-          ))}
+        <div className="relative mb-1">
+          <div
+            className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-thin scrollbar-thumb-lime-200 pr-8"
+            style={{ maxWidth: '100%' }}
+            tabIndex={0}
+            aria-label="Listing tags"
+          >
+            {Array.isArray(tags) && tags.map((tag, index) => (
+              <span
+                key={index}
+                className="px-2 py-0.5 bg-lime-300 rounded text-xs text-cyan-950 whitespace-nowrap max-w-[120px] truncate"
+                title={tag}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          {/* Fade-out effect for overflow */}
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white via-white/80 to-transparent" />
         </div>
-
-        {/* Description preview */}
-        <p className="text-cyan-800 text-sm line-clamp-2 flex-grow">{desc}</p>
+        <p className="text-cyan-800 text-xs md:text-sm line-clamp-2 flex-grow mt-1">{desc}</p>
       </div>
+
+      {/* Report button for all users */}
+      <button
+        className="absolute top-2 right-2 bg-white border border-red-300 text-red-700 px-2 py-0.5 rounded text-xs hover:bg-red-100 z-20"
+        title="Report this listing"
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          setShowReportModal(true);
+        }}
+      >
+        Report
+      </button>
 
       {/* Price and buttons section */}
       <div className="w-20 flex flex-col items-end justify-between">
@@ -228,5 +295,58 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
         </div>
       </div>
     </div>
+
+    {/* Report Modal */}
+    {showReportModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs relative">
+          <button
+            className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+            onClick={() => setShowReportModal(false)}
+            aria-label="Close report modal"
+            type="button"
+          >
+            ×
+          </button>
+          <h2 className="text-lg font-bold text-cyan-800 mb-2">Report Listing</h2>
+          {reportSuccess ? (
+            <div className="text-green-700 font-semibold">Report submitted. Thank you!</div>
+          ) : (
+            <form onSubmit={handleReportSubmit} className="space-y-3">
+              <label className="block">
+                <span className="text-cyan-900 text-sm font-medium">Reason<span className="text-red-500">*</span></span>
+                <input
+                  className="w-full p-2 border rounded mt-1"
+                  required
+                  value={reportReason}
+                  onChange={e => setReportReason(e.target.value)}
+                  placeholder="Reason for report"
+                />
+              </label>
+              <label className="block">
+                <span className="text-cyan-900 text-sm font-medium">Description (optional)</span>
+                <textarea
+                  className="w-full p-2 border rounded mt-1"
+                  rows={3}
+                  value={reportDescription}
+                  onChange={e => setReportDescription(e.target.value)}
+                  placeholder="Describe the issue (optional)"
+                />
+              </label>
+              {reportError && <div className="text-red-600 text-xs">{reportError}</div>}
+              <button
+                type="submit"
+                className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-60"
+                disabled={reportLoading || !reportReason}
+              >
+                {reportLoading ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    )}
+  </>
   );
 }
+
