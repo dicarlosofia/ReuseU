@@ -8,17 +8,20 @@ something for.
 Author: Sofia DiCarlo, Class of 2025
 '''
 from openai import OpenAI
-from dotenv import load_dotenv #< For private OPENAI_API_KEY handling
+import json #< For private OPENAI_API_KEY
 import os #< OS routines for NT or Posix depending on what system we're on.
 import re #< regular expressions library
 
-# Load environment variable 
-load_dotenv()
+# Get the absolute path to the credentials file
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(current_dir)
+cred_path = os.path.join(backend_dir, "pk3.json")
 
-# Get and set up private key
-api_key = os.getenv("OPENAI_API_KEY")
+with open(cred_path, "r") as f:
+    cfg = json.load(f)
+
 client = OpenAI(
-   api_key=api_key 
+   api_key=cfg["OPENAI_API_KEY"] 
 )
 
 '''
