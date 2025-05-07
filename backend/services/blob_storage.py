@@ -15,9 +15,9 @@ from PIL import Image
 
 import boto3
 from botocore.client import Config
-import cv2
 import numpy as np
 
+#test
 
 def connect_to_blob_db_resource():
     # Get the absolute path to the credentials file
