@@ -49,3 +49,24 @@ def delete_review(current_user, listing_id):
         return jsonify({"message": f"Review for listing {listing_id} deleted successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+    
+
+@reviews_bp.route('/reviews/<string:seller_id>', methods=['GET'])
+@jwt_required
+def get_sellers_reviews(seller_id):
+    review_data = review_service.get_sellers_reviews(int(seller_id))
+    if review_data:
+        return jsonify(review_data), 200
+    else:
+        return jsonify({"message": f"Reviews for seller {seller_id} not found"}), 404
+    
+
+
+@reviews_bp.route('/stars/<string:seller_id>', methods=['GET'])
+@jwt_required
+def get_sellers_stars(seller_id):
+    stars = review_service.get_sellers_stars(int(seller_id))
+    if stars:
+        return jsonify(stars), 200
+    else:
+        return jsonify({"message": f"Reviews for seller {seller_id} not found, cannot return stars rating"}), 404
