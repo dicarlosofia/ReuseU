@@ -15,7 +15,8 @@
  * The component handles the creation of new listings and uploads them to the server.
  */
 
-import { useState } from 'react';
+// Form for users to create a new listing
+import React, { useState } from 'react';
 import { ArrowUpTrayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/router';
 import { listingsApi } from '@/pages/api/listings';
@@ -54,11 +55,36 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const UserID = user ? user.uid : "";
-  // Available category tags for selection
-  const availableTags = [
-    'Electronics', 'Furniture', 'Clothing',
-    'Kitchen', 'Books', 'Sports'
+  // Available categories and subcategories for selection (synced with Dropdown)
+  const categoryGroups = [
+    {
+      name: "Electronics",
+      subcategories: ["Laptops", "Phones", "Tablets", "TVs"]
+    },
+    {
+      name: "Furniture",
+      subcategories: ["Tables", "Chairs", "Desks", "Beds", "Storage"]
+    },
+    {
+      name: "Clothing",
+      subcategories: ["Tops", "Bottoms", "Dresses", "Shirts"]
+    },
+    {
+      name: "Home & Kitchen",
+      subcategories: ["Appliances", "Cookware", "Dinnerware", "Utensils"]
+    },
+    {
+      name: "Arts & Crafts",
+      subcategories: ["Art", "Crafts", "Books"]
+    },
+    {
+      name: "Other",
+      subcategories: ["Other"]
+    }
   ];
+  // Flatten all subcategories for dropdown options
+  const availableTags = categoryGroups.flatMap(group => group.subcategories);
+
 
  function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -116,12 +142,15 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
 
   // Tag selection handlers
   const chooseTag = (tag: string) => {
-    setSelectedTags(prev => [...prev, tag]);
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags(prev => [...prev, tag]);
+    }
   };
 
   const removeTag = (tag: string) => {
     setSelectedTags(prev => prev.filter(t => t !== tag));
   };
+
 
   // Photo upload and management
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,57 +335,46 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Title and tags section */}
-          <div className="flex gap-4">
-            <div className="w-2/3 flex items-center gap-2">
-              <label htmlFor="title" className="text-cyan-800 block text-lg mb-2">
-                Listing Title:
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Default Item"
-                className="w-3/5  text-cyan-800 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
-              />
-            </div>
-            
-            {/* Selected tags display */}
-            <div className="w-1/3">
-              <label className="text-cyan-800 block text-lg mb-2">
-                Chosen Tags:
-              </label>
-              <div className="text-cyan-800 border rounded p-2 min-h-[40px]">
-                {selectedTags.map((tag) => (
-                  <span 
-                    key={tag} 
-                    onClick={() => removeTag(tag)} 
-                    className="cursor-pointer inline-block bg-[#2A9FD0] text-white text-sm px-2 py-1 rounded mr-1 mb-1"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {/* Title */}
+          <div>
+            <label htmlFor="title" className="text-cyan-800 block text-lg mb-2">
+              Listing Title:
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Default Item"
+              className="w-full text-cyan-800 p-2.5 border rounded focus:ring-1 focus:ring-cyan-600 focus:border-cyan-600"
+            />
+          </div>
 
-            {/* Available tags selection */}
-            <div className="w-1/3">
-              <label className="block text-lg text-cyan-800 mb-2">
-                Choose Tags
-              </label>
-              <div className="text-cyan-800 border rounded p-2 min-h-[40px]">
-                {availableTags.filter(tag => !selectedTags.includes(tag)).map((tag) => (
-                  <span 
-                    key={tag} 
-                    onClick={() => chooseTag(tag)} 
-                    className="cursor-pointer inline-block bg-lime-200 text-cyan-800 text-sm px-2 py-1 rounded mr-1 mb-1 hover:bg-lime-500"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+          {/* Tag selection dropdown */}
+          <div>
+            <label className="block text-cyan-950 font-semibold mb-2">Categories/Tags</label>
+            <div className="flex flex-row flex-wrap gap-2 mb-2">
+              {selectedTags.map(tag => (
+                <span key={tag} className="inline-flex items-center px-3 py-1 bg-lime-100 text-cyan-950 rounded-full text-sm">
+                  {tag}
+                  <button type="button" className="ml-2 text-red-600 hover:text-red-800" onClick={() => removeTag(tag)}>&times;</button>
+                </span>
+              ))}
             </div>
+            <select
+              className="w-full border border-gray-300 rounded-md p-2"
+              value=""
+              onChange={e => { chooseTag(e.target.value); }}
+            >
+              <option value="" disabled>Add a tag...</option>
+              {categoryGroups.map(group => (
+                <optgroup key={group.name} label={group.name}>
+                  {group.subcategories.map(sub => (
+                    <option key={sub} value={sub} disabled={selectedTags.includes(sub)}>{sub}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
 
           {/* Description input */}

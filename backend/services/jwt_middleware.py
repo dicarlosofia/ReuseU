@@ -1,5 +1,6 @@
 from firebase_admin import auth, db
 from functools import wraps
+# Middleware to verify JWT tokens and extract user info
 from flask import request, jsonify, g
 import logging
 
@@ -8,6 +9,9 @@ logger = logging.getLogger(__name__)
 def jwt_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Allow CORS preflight OPTIONS requests without auth
+        if request.method == 'OPTIONS':
+            return '', 200
         token = None
         auth_header = request.headers.get('Authorization')
 

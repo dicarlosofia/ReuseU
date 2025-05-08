@@ -1,6 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 
+# Main entry point for the backend API
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -10,6 +11,8 @@ from routes.chat import chats_bp
 from routes.transaction import transactions_bp
 from routes.account import accounts_bp
 from routes.message import messages_bp
+from routes.listing_report import report_bp
+from routes.admin_report import admin_report_bp
 
 def create_app():
     app = Flask(__name__)
@@ -40,6 +43,8 @@ def create_app():
     app.register_blueprint(chats_bp, url_prefix='/api/chats')
     app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
     app.register_blueprint(messages_bp, url_prefix='/api/messages')
+    app.register_blueprint(report_bp)
+    app.register_blueprint(admin_report_bp)
 
     @app.route("/")
     def home():

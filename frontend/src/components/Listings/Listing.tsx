@@ -1,3 +1,13 @@
+// Card component for displaying a single listing in a list
+// This component expects the following props:
+// - title: The title of the listing
+// - price: The price of the listing
+// - tags: An array of category tags for the listing
+// - desc: A brief description of the listing
+// - image: A signed S3 URL for the listing's thumbnail image (optional)
+// - ListingID: The unique ID of the listing
+// - UserID: The unique ID of the user who created the listing
+
 import { useState, useRef, useContext } from "react";
 import { HeartIcon as HeartOutline, TrashIcon, UserIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
@@ -100,8 +110,16 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
         seller_id: String(UserID)
       }, token);
       openChat(newChat);
+      // Ensure chat drawer opens immediately
       if (globalChatRef && globalChatRef.current) {
         globalChatRef.current.fetchChats();
+      } else {
+        // Retry if ref is not ready
+        setTimeout(() => {
+          if (globalChatRef && globalChatRef.current) {
+            globalChatRef.current.fetchChats();
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -194,50 +212,53 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
       </div>
 
       {/* Content container - improved responsive layout */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <h3
-          className="text-cyan-800 text-lg font-semibold mb-1 cursor-pointer hover:underline break-words whitespace-normal"
-          onClick={() => handleTitleClick(title)}
-          title={title}
-          style={{ wordBreak: 'break-word' }}
-        >
-          {title}
-        </h3>
-        <div className="relative mb-1">
-          <div
-            className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-thin scrollbar-thumb-lime-200 pr-8"
-            style={{ maxWidth: '100%' }}
-            tabIndex={0}
-            aria-label="Listing tags"
+      <div className="flex-1 flex flex-col min-w-0 justify-between">
+        <div>
+          <h3
+            className="text-cyan-800 text-lg font-semibold mb-1 cursor-pointer hover:underline break-words whitespace-nowrap overflow-hidden text-ellipsis max-h-[2.7em] leading-tight"
+            onClick={() => handleTitleClick(title)}
+            title={title}
+            style={{ wordBreak: 'break-word' }}
           >
-            {Array.isArray(tags) && tags.map((tag, index) => (
-              <span
-                key={index}
-                className="px-2 py-0.5 bg-lime-300 rounded text-xs text-cyan-950 whitespace-nowrap max-w-[120px] truncate"
-                title={tag}
-              >
-                {tag}
-              </span>
-            ))}
+            {title}
+          </h3>
+          <div className="relative mb-1">
+            <div
+              className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-thin scrollbar-thumb-lime-200 pr-8"
+              style={{ maxWidth: '100%' }}
+              tabIndex={0}
+              aria-label="Listing tags"
+            >
+              {Array.isArray(tags) && tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-2 py-0.5 bg-lime-300 rounded text-xs text-cyan-950 whitespace-nowrap max-w-[120px] truncate"
+                  title={tag}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            {/* Fade-out effect for overflow */}
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white via-white/80 to-transparent" />
           </div>
-          {/* Fade-out effect for overflow */}
-          <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white via-white/80 to-transparent" />
+          <p className="text-cyan-800 text-xs md:text-sm line-clamp-2 mt-1">{desc}</p>
         </div>
-        <p className="text-cyan-800 text-xs md:text-sm line-clamp-2 flex-grow mt-1">{desc}</p>
+        {/* Report button for all users - bottom left of content column */}
+        <div className="mt-2 self-start">
+          <button
+            className="bg-white border border-red-300 text-red-700 px-3 py-1 rounded text-xs hover:bg-red-100 transition-colors"
+            title="Report this listing"
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              setShowReportModal(true);
+            }}
+          >
+            Report
+          </button>
+        </div>
       </div>
-
-      {/* Report button for all users */}
-      <button
-        className="absolute top-2 right-2 bg-white border border-red-300 text-red-700 px-2 py-0.5 rounded text-xs hover:bg-red-100 z-20"
-        title="Report this listing"
-        type="button"
-        onClick={e => {
-          e.stopPropagation();
-          setShowReportModal(true);
-        }}
-      >
-        Report
-      </button>
 
       {/* Price and buttons section */}
       <div className="w-20 flex flex-col items-end justify-between">

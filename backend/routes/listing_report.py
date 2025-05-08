@@ -1,12 +1,13 @@
+# Blueprint for listing report routes
 from flask import Blueprint, request, jsonify, g
-from services import listing_service
+from services.listing_report_service import report_listing as report_listing_service
 from services.jwt_middleware import jwt_required
 import logging
 
 report_bp = Blueprint('report_bp', __name__, url_prefix='/api/report')
 logger = logging.getLogger(__name__)
 
-@report_bp.route('/listing/<string:listing_id>', methods=['POST'])
+@report_bp.route('/listing/<string:listing_id>', methods=['POST', 'OPTIONS'])
 @jwt_required
 def report_listing(listing_id):
     marketplace_id = g.marketplace_id
@@ -18,7 +19,7 @@ def report_listing(listing_id):
         return jsonify({'error': 'Reason is required'}), 400
     # Save report (implement actual DB logic in listing_service)
     try:
-        listing_service.report_listing(marketplace_id, listing_id, user_id, reason, description)
+        report_listing_service(marketplace_id, listing_id, user_id, reason, description)
         return jsonify({'message': 'Report submitted'}), 201
     except Exception as e:
         logger.error(f"Error reporting listing {listing_id}: {e}", exc_info=True)

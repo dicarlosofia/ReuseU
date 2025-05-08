@@ -1,5 +1,7 @@
 // src/Context/GlobalContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react'
+// Global context for user and app-wide state
+// This context manages the user's authentication state, account data, and other app-wide settings.
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -33,44 +35,47 @@ interface GlobalContextType {
   listings: any[]
   setListings: (listings: any[]) => void
   requestPasswordReset: (email: string) => Promise<void>
+  searchQuery: string
+  setSearchQuery: (query: string) => void
 }
 
 const GlobalContext = createContext<GlobalContextType>({} as any)
 export const useGlobalContext = () => useContext(GlobalContext)
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [account, setAccount] = useState<AccountData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState({})
-  const [title, setTitle] = useState<string>('')
-  const [listings, setListings] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null);
+  const [account, setAccount] = useState<AccountData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({});
+  const [title, setTitle] = useState<string>('');
+  const [listings, setListings] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      setUser(fbUser)
+      setUser(fbUser);
       if (fbUser) {
-        const token = await fbUser.getIdToken()
+        const token = await fbUser.getIdToken();
         try {
-          const acct = await accountsApi.getAccount(fbUser.uid, token)
-          setAccount(acct)
+          const acct = await accountsApi.getAccount(fbUser.uid, token);
+          setAccount(acct);
         } catch {
-          setAccount(null)
+          setAccount(null);
         }
       } else {
-        setAccount(null)
+        setAccount(null);
       }
-      setLoading(false)
-    })
-    return unsubscribe
-  }, [])
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password)
-      const token = await cred.user.getIdToken()
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const token = await cred.user.getIdToken();
       let acct: AccountData | null = null;
       try {
         acct = await accountsApi.getAccount(cred.user.uid, token)
@@ -194,6 +199,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         listings,
         setListings,
         requestPasswordReset,
+        searchQuery,
+        setSearchQuery,
       }}
     >
       {children}

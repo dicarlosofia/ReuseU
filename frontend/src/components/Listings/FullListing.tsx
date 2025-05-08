@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from "react";
+// Full details page for a single listing
+// This component fetches and displays detailed information about a single listing,
+// including its title, price, description, images, and tags.
+// It also handles user interactions such as navigating between images, 
+// viewing the seller's profile, sending a message to the seller, and deleting the listing.
+import React, { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
 import { ChevronLeft, ChevronRight, ArrowLeft, MessageCircle, Leaf, Trash2 } from "lucide-react";
 import { UserCircleIcon } from '@heroicons/react/24/outline';
@@ -6,6 +11,8 @@ import { ChatBubbleLeftIcon as MessageCircleIcon } from '@heroicons/react/24/out
 import ChatComponent from '@/components/Chat/ChatComponent';
 import { listingsApi } from "@/pages/api/listings";
 import { useGlobalContext } from "@/Context/GlobalContext";
+import { useChat } from '@/Context/ChatContext';
+import { GlobalChatRefContext } from '@/pages/_app';
 
 // Define Listing interface
 export interface FullListingProps {
@@ -47,12 +54,16 @@ export default function FullListing({
 }: FullListingProps) {
   const { user } = useGlobalContext();
   const router = useRouter();
-  const [showChatComponent, setShowChatComponent] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
-  const [isRemoved, setIsRemoved] = useState(false);
+  const { openChat } = useChat();
+  const globalChatRef = useContext(GlobalChatRefContext);
+
+  // Types for state
+  const [showChatComponent, setShowChatComponent] = useState<boolean>(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState<boolean>(false);
+  const [isRemoved, setIsRemoved] = useState<boolean>(false);
   const currentUserId = user?.uid;
 
   // Fallback main image or use signed URL
@@ -71,18 +82,18 @@ export default function FullListing({
     setIsLoaded(true);
   }, []);
 
-  const handleBackClick = () => router.back();
+  const handleBackClick = (): void => router.back();
 
-  const handlePrevImage = () =>
-    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  const handlePrevImage = (): void =>
+    setCurrentImageIndex((prev: number) => (prev === 0 ? allImages.length - 1 : prev - 1));
 
-  const handleNextImage = () =>
-    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  const handleNextImage = (): void =>
+    setCurrentImageIndex((prev: number) => (prev === allImages.length - 1 ? 0 : prev + 1));
 
-  const handleViewProfile = async () => {
+  const handleViewProfile = async (): Promise<void> => {
     if (sellerId && user) {
       try {
-        const token = await user.getIdToken();
+        const token: string = await user.getIdToken();
         const data = await import("@/pages/api/accounts").then(m => m.accountsApi.getAccountByUsername(sellerId, token));
         if (data && data.Username) {
           router.push(`/profile/${data.Username}`);
@@ -96,29 +107,38 @@ export default function FullListing({
   };
 
 
-  const handleMessageSeller = async () => {
+  // (Removed duplicate declarations of openChat and globalChatRef)
+
+  const handleMessageSeller = async (): Promise<void> => {
     try {
-      const token = await user?.getIdToken();
-      const response = await fetch('/api/chats/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ listing_id: listingId, seller_id: sellerId })
-      });
-      const data = await response.json();
-      if (response.ok) {
-        router.push(`/chat/${data.chat_id}`);
-      } else {
-        console.error('Failed to start chat:', data.error);
+      if (!user) {
+        console.error('User not authenticated');
+        return;
       }
-    } catch (error) {
+      const token: string = await user.getIdToken();
+      const newChat = await (await import('@/pages/api/chats')).chatsApi.create({
+        listing_id: String(listingId),
+        seller_id: String(sellerId)
+      }, token);
+      openChat(newChat);
+      // Ensure chat drawer updates immediately
+      if (globalChatRef && globalChatRef.current) {
+        globalChatRef.current.fetchChats();
+      } else {
+        setTimeout(() => {
+          if (globalChatRef && globalChatRef.current) {
+            globalChatRef.current.fetchChats();
+          }
+        }, 100);
+      }
+    } catch (error: unknown) {
       console.error('Error starting chat:', error);
     }
   };
 
-  const handleDelete = async () => {
+
+
+  const handleDelete = async (): Promise<void> => {
     if (!listingId) return;
     try {
       setIsDeleting(true);
@@ -129,7 +149,7 @@ export default function FullListing({
         setIsRemoved(true);
         setTimeout(() => router.push('/'), 300);
       }, 1500);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting listing:', error);
     } finally {
       setIsDeleting(false);

@@ -1,19 +1,9 @@
-/**
- * Chat Component
- * 
- * This is a floating chat interface component that allows users to:
- * - View their active chats
- * - Open and close individual chat windows
- * - Send and receive messages
- * - See unread message counts
- * - Collapse/expand the chat interface
- * 
- * The component can be initialized with a specific listing to start a new chat.
- * It includes real-time message updates and a simulated response system.
- */
+// Main chat UI component for user messaging
+// This component handles user chat interactions, including fetching chats, 
+// opening and closing chats, sending messages, and updating the chat UI state.
 
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef, RefObject } from 'react';
-import { ChevronDownIcon, UserCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react';
+import { ChevronDownIcon, UserCircleIcon, ArrowLeftIcon, XMarkIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
 import { useGlobalContext } from '@/Context/GlobalContext';
 import { chatsApi, Message as ApiMessage } from '@/pages/api/chats';
@@ -78,13 +68,30 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     const [adaptedMessages, setAdaptedMessages] = useState<AdaptedMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loadingChats, setLoadingChats] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [isMinimized, setIsMinimized] = useState(false);
     const socketRef = useRef<Socket | null>(null);
     const [listingTitle, setListingTitle] = useState<string>('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Format timestamps as YYYY-MM-DD HH:mm
+    const formatTimestamp = (ts: string) => {
+      const date = new Date(ts);
+      return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+    };
+
+    // Convert API message to UI message
+    const adaptMessage = (msg: MinimalMessage, currentUserId: string): AdaptedMessage | null => {
+      if (!msg) return null;
+      return {
+        text: msg.content,
+        sender: msg.sender_id === currentUserId ? 'user' : 'other',
+        timestamp: formatTimestamp(msg.created_at),
+      };
+    };
 
     // Fetch user's chats from backend
     const fetchChats = useCallback(async () => {
-      console.log('[ChatComponent] fetchChats called');
       if (!user?.uid || !account?.Username) return;
       setLoadingChats(true);
       try {
@@ -137,10 +144,7 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             const listing = await (await import('@/pages/api/listings')).listingsApi.getById(chat.listing_id, token);
             if (listing && listing.Title) {
               setListingTitle(listing.Title);
-              // Update chat preview title in chats list
-              setChats(prevChats => prevChats.map(c =>
-                c.id === chat.id ? { ...c, title: listing.Title } : c
-              ));
+              setChats((prevChats: Chat[]) => prevChats.map((c: Chat) => c.id === chat.id ? { ...c, title: listing.Title } : c));
             }
           } catch (e) {
             setListingTitle('');
@@ -152,8 +156,8 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
         const full = await chatsApi.getById(chat.id, token);
         setSelectedChat(chat);
         setIsCollapsed(false);
+        setIsMinimized(false);
         if (user?.uid && full.messages) {
-          // Map backend fields to expected format for adaptMessage
           type BackendMessage = {
             id: string;
             sender_id: string;
@@ -186,8 +190,8 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       }
       setSelectedChat(null);
       setAdaptedMessages([]);
+      setIsCollapsed(true);
     }, [selectedChat]);
-
 
     // Send a new message
     const handleSendMessage = useCallback(async (chatId: string, e: React.FormEvent) => {
@@ -219,10 +223,15 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       }
     }, [newMessage, user]);
 
-
     // Toggle collapse/expand of chat body
     const toggleCollapse = () => {
       setIsCollapsed(prev => !prev);
+      if (isMinimized) setIsMinimized(false);
+    };
+
+    // Toggle minimize/maximize chat window
+    const toggleMinimize = () => {
+      setIsMinimized(prev => !prev);
     };
 
     // Determine header title
@@ -230,51 +239,32 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       ? `Chat about ${listingTitle}`
       : 'Chats';
 
-
-    // Format timestamps as YYYY-MM-DD HH:mm
-    const formatTimestamp = (ts: string) => {
-      const date = new Date(ts);
-      return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-    };
-
-    // Convert API message to UI message
-    const adaptMessage = (msg: MinimalMessage, currentUserId: string): AdaptedMessage | null => {
-      if (!msg) return null;
-      return {
-        text: msg.content,
-        sender: msg.sender_id === currentUserId ? 'user' : 'other',
-        timestamp: formatTimestamp(msg.created_at),
-      };
-    };
-
-
     useImperativeHandle(ref, () => ({ fetchChats }));
 
     // WebSocket connection and listeners
     useEffect(() => {
-      if (!socketRef.current) {
-        socketRef.current = io(SOCKET_URL + '/chat', { transports: ['websocket'], 
-          auth: {
-            token: user?.getIdToken(),  // Firebase ID token
-          },
+      if (!socketRef.current && user) {
+        user.getIdToken().then(token => {
+          socketRef.current = io(SOCKET_URL + '/chat', { 
+            transports: ['websocket'], 
+            auth: { token }
+          });
+          
+          const socket = socketRef.current;
+          const onReceiveMessage = (data: { message: string; sender: string; timestamp?: string }) => {
+            setAdaptedMessages(prev => [
+              ...prev,
+              {
+                text: data.message,
+                sender: data.sender === user?.uid ? 'user' : 'other',
+                timestamp: formatTimestamp(data.timestamp || new Date().toISOString()),
+              },
+            ]);
+          };
+          socket.on('receive_message', onReceiveMessage);
         });
       }
-      const socket = socketRef.current;
-      const onReceiveMessage = (data: { message: string; sender: string; timestamp?: string }) => {
-        setAdaptedMessages(prev => [
-          ...prev,
-          {
-            text: data.message,
-            sender: data.sender === user?.uid ? 'user' : 'other',
-            timestamp: formatTimestamp(data.timestamp || new Date().toISOString()),
-          },
-        ]);
-      };
-      socket.on('receive_message', onReceiveMessage);
-      return () => {
-        socket.off('receive_message', onReceiveMessage);
-      };
-    }, [user?.uid]);
+    }, [user]);
 
     // Clean up socket connection on unmount
     useEffect(() => {
@@ -285,9 +275,6 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
         }
       };
     }, []);
-
-    // Reference for autoscroll
-    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Always load chats on mount and when user/account changes
     useEffect(() => {
@@ -303,106 +290,167 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
       }
     }, [selectedChat, adaptedMessages]);
 
-    return (
-      <div className="fixed bottom-4 right-4 z-50 w-96">
-        {/* Chat header */}
-        <div className="bg-cyan-950 text-white p-4 rounded-t-lg flex justify-between items-center">
-          <h2 className="text-lg font-semibold">{headerTitle}</h2>
-          <div className="flex items-center">
-            {selectedChat && (
-              <ArrowLeftIcon
-                className="h-6 w-6 mr-2 cursor-pointer"
-                onClick={closeChat}
-              />
-            )}
-            <ChevronDownIcon
-              className={`h-6 w-6 cursor-pointer transform transition-transform duration-300 ${
-                isCollapsed ? 'rotate-180' : ''
-              }`}
-              onClick={toggleCollapse}
-            />
-          </div>
-        </div>
+    // Count total unread messages across all chats
+    const totalUnread = chats.reduce((sum, chat) => sum + chat.unreadCount, 0);
 
-        {/* Chat body */}
+    return (
+      <>
+        {/* Floating chat button (collapsed) */}
+        {isCollapsed && (
+          <button
+            className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-cyan-500 shadow-xl flex items-center justify-center hover:bg-cyan-700 transition-colors duration-300"
+            onClick={toggleCollapse}
+            aria-label="Open chat"
+          >
+            <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-white" />
+            {totalUnread > 0 && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                {totalUnread}
+              </div>
+            )}
+          </button>
+        )}
+
+        {/* Chat drawer (expanded) */}
         {!isCollapsed && (
-          <div className="bg-white rounded-b-lg border">
-            {!selectedChat ? (
-              loadingChats ? (
-                /* Loading spinner */
-                <div className="flex items-center justify-center h-32">
-                  <svg className="animate-spin h-8 w-8 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                </div>
-              ) : (
-                /* Chats list */
-                <div className="max-h-96 overflow-y-auto">
-                  {chats.map(chat => (
-                    <button
-                      key={chat.id}
-                      onClick={() => openChat(chat)}
-                      className="w-full p-3 flex items-center justify-between hover:bg-cyan-100 border-b last:border-b-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                        <div className="text-left">
-                          <div className="text-cyan-800 font-medium">{chat.participant.name}</div>
-                          <div className="text-sm text-gray-500">{chat.title}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">{chat.lastMessageTime}</div>
-                        {chat.unreadCount > 0 && (
-                          <div className="mt-1 bg-cyan-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {chat.unreadCount}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )
-            ) : (
-              /* Selected chat view */
-              <>
-                <div className="h-72 overflow-y-auto p-4" id="chat-messages-container">
-                  {adaptedMessages.map((message, i) => (
-                    <div key={i} className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                      <div className={`inline-block p-2 rounded-lg ${
-                        message.sender === 'user' ? 'bg-cyan-600 text-white' : 'bg-gray-200 text-cyan-950'
-                      }`}>
-                        {message.text}
-                        <span className="text-xs block mt-1">{message.timestamp}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {/* 🔻 THIS is the scroll anchor */}
-                  <div ref={messagesEndRef} />
-                </div>
-                {/* Message input */}
-                <form
-                  className="text-cyan-700 flex items-center gap-2 p-4 border-t bg-cyan-50 rounded-b-lg"
-                  onSubmit={(e: React.FormEvent) => handleSendMessage(selectedChat.id, e)}
-                >
-                  <input
-                    type="text"
-                    className="bg-white border-cyan-800 flex-1 rounded border px-3 py-2"
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={e => setNewMessage((e.target as HTMLInputElement).value)}
-                    autoFocus
+          <div
+            className={`fixed bottom-0 right-0 z-50 flex flex-col shadow-xl bg-white transition-all duration-300 ease-in-out rounded-t-lg
+                      ${isMinimized 
+                        ? 'w-64 h-12' 
+                        : selectedChat 
+                          ? 'w-96 md:w-96 h-[500px]' 
+                          : 'w-80 md:w-80 h-96'}`}
+          >
+            {/* Header */}
+            <div 
+              className="sticky top-0 bg-cyan-900 text-white p-3 rounded-t-lg flex justify-between items-center shadow-md cursor-pointer"
+              onClick={isMinimized ? toggleMinimize : undefined}
+            >
+              <div className="flex items-center space-x-2 truncate">
+                {selectedChat && !isMinimized && (
+                  <ArrowLeftIcon
+                    className="h-5 w-5 cursor-pointer hover:text-cyan-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeChat();
+                    }}
                   />
-                  <button type="submit" className="bg-cyan-600 text-white rounded px-4 py-2">
-                    Send
-                  </button>
-                </form>
-              </>
+                )}
+                <h2 className="text-base font-semibold truncate">{headerTitle}</h2>
+              </div>
+              <div className="flex items-center space-x-1">
+                {!isMinimized && (
+                  <div 
+                    className="p-1 hover:bg-cyan-800 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMinimize();
+                    }}
+                  >
+                    <ChevronDownIcon className="h-5 w-5 cursor-pointer" />
+                  </div>
+                )}
+                <div 
+                  className="p-1 hover:bg-cyan-800 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    isMinimized ? setIsCollapsed(true) : toggleCollapse();
+                  }}
+                >
+                  <XMarkIcon className="h-5 w-5 cursor-pointer" />
+                </div>
+              </div>
+            </div>
+
+            {/* Chat body - only show if not minimized */}
+            {!isMinimized && (
+              <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-cyan-50">
+                {!selectedChat ? (
+                  loadingChats ? (
+                    <div className="flex items-center justify-center h-32">
+                      <svg className="animate-spin h-8 w-8 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="max-h-full overflow-y-auto overflow-x-hidden divide-y divide-cyan-100">
+                      {chats.length === 0 ? (
+                        <div className="py-8 text-center text-gray-500">
+                          No chats available
+                        </div>
+                      ) : (
+                        chats.map((chat: Chat) => (
+                          <button
+                            key={chat.id}
+                            onClick={() => openChat(chat)}
+                            className="w-full p-3 flex items-center justify-between hover:bg-cyan-100 rounded transition-colors duration-200"
+                          >
+                            <div className="flex items-center gap-3">
+                              <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                              <div className="text-left">
+                                <div className="text-cyan-800 font-medium truncate">{chat.participant.name}</div>
+                                <div className="text-sm text-gray-500 truncate">{chat.title}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-500">{chat.lastMessageTime}</div>
+                              {chat.unreadCount > 0 && (
+                                <div className="mt-1 bg-cyan-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                  {chat.unreadCount}
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div className="h-[380px] overflow-y-auto p-2" id="chat-messages-container">
+                      {adaptedMessages.length === 0 ? (
+                        <div className="py-8 text-center text-gray-500">
+                          Start a conversation
+                        </div>
+                      ) : (
+                        adaptedMessages.map((message: AdaptedMessage, i: number) => (
+                          <div key={i} className={`mb-4 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                            <div className={`inline-block p-2 rounded-lg shadow-sm max-w-[80%] ${
+                              message.sender === 'user' ? 'bg-cyan-600 text-white' : 'bg-white text-cyan-950 border border-cyan-100'
+                            }`}>
+                              {message.text}
+                              <span className="text-xs block mt-1 opacity-70">{message.timestamp}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                    {/* Message input */}
+                    <form
+                      className="text-cyan-700 flex items-center gap-2 p-2 border-t border-cyan-100 bg-white"
+                      onSubmit={(e: React.FormEvent) => handleSendMessage(selectedChat?.id || '', e)}
+                    >
+                      <input
+                        type="text"
+                        className="bg-cyan-50 border-cyan-200 flex-1 rounded-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        placeholder="Type a message..."
+                        value={newMessage}
+                        onChange={e => setNewMessage(e.target.value)}
+                        autoFocus
+                      />
+                      <button type="submit" className="bg-cyan-600 text-white rounded-full px-3 py-2 hover:bg-cyan-700 transition-colors duration-200">
+                        Send
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </>
     );
   }
 );

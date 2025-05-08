@@ -15,7 +15,10 @@
 import Listing from "./Listing"
 import { Dropdown } from "../Dropdown/Dropdown"
 import { useGlobalContext } from "@/Context/GlobalContext"
-import { useEffect, useState } from "react"
+// Homepage for browsing all listings
+import React, { useEffect, useState } from 'react';
+
+// Import API for fetching listings data
 import { listingsApi, Listing as ListingType } from "@/pages/api/listings"
 import { FilterIcon, UserIcon } from "lucide-react"
 
@@ -35,7 +38,7 @@ const priceRanges: PriceRange[] = [
 ]
 
 export default function ListingsHomepage() {
-  const { filters, setListings, listings, user, setFilters } = useGlobalContext()
+  const { filters, setListings, listings, user, setFilters, searchQuery, setSearchQuery } = useGlobalContext()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -132,37 +135,39 @@ export default function ListingsHomepage() {
 
   // Filtering logic
   const filteredListings = listings.filter((listing: ListingType) => {
-    // First check if we're showing only user's listings
+    // Filter by "My Listings"
     if (showMyListings && String(listing.UserID) !== currentUserId) {
-      return false
+      return false;
     }
 
-    // Then apply other filters
-    if (!filters || Object.keys(filters).length === 0) {
-      return true
+    // Filter by categories (strict AND logic)
+    if (filters?.categories && filters.categories.length > 0) {
+      // All selected categories must be present in the listing.Category
+      if (!filters.categories.every((cat: string) => listing.Category.includes(cat))) {
+        return false;
+      }
     }
 
-    const hasMatchingCategory =
-      !filters.categories || filters.categories.length === 0
-        ? true
-        : listing.Category.some((cat) => cat && filters.categories.includes(cat))
-
-    const hasMatchingPriceRange =
-      !filters.priceRanges || filters.priceRanges.length === 0
-        ? true
-        : priceRanges.some((range) =>
-            filters.priceRanges.includes(range.label)
-              ? parseFloat(listing.Price) >= range.min &&
-                parseFloat(listing.Price) < range.max
-              : false
-          )
-
-    if (filters.categories?.length > 0 && filters.priceRanges?.length > 0) {
-      return hasMatchingCategory && hasMatchingPriceRange
+    // Filter by price ranges
+    if (filters?.priceRanges && filters.priceRanges.length > 0) {
+      const price = parseFloat(listing.Price);
+      const matchesPrice = priceRanges.some((range) => {
+        return filters.priceRanges.includes(range.label) && price >= range.min && price < range.max;
+      });
+      if (!matchesPrice) return false;
     }
 
-    return hasMatchingCategory || hasMatchingPriceRange
-  })
+    // Filter by search query
+    if (searchQuery && searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      const inTitle = listing.Title?.toLowerCase().includes(q);
+      const inDesc = listing.Description?.toLowerCase().includes(q);
+      const inCategory = listing.Category?.some((cat: string) => cat.toLowerCase().includes(q));
+      if (!inTitle && !inDesc && !inCategory) return false;
+    }
+
+    return true;
+  });
 
   // Only apply pagination if we're not showing user's listings
   const displayedListings = showMyListings 
@@ -206,6 +211,7 @@ export default function ListingsHomepage() {
                 </h2>
               </div>
               <div className="p-4 h-full">
+
                 <div className="mb-4 p-3 bg-lime-500 rounded-lg border border-cyan-800">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input

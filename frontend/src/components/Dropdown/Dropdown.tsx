@@ -1,7 +1,14 @@
+// Reusable dropdown component for selections
+// This component allows users to select categories and price ranges for filtering data.
+// It uses the GlobalContext to manage the filters state and provides a toggleable interface for each filter group.
+
 import { useState } from "react";
 import { useGlobalContext } from "@/Context/GlobalContext";
 import { ChevronDownIcon, ChevronUpIcon, TagIcon, BanknoteIcon } from "lucide-react";
 
+// Interface for filters object
+// categories: array of selected category names
+// priceRanges: array of selected price range names
 interface Filters {
   categories: string[];
   priceRanges: string[];
@@ -91,6 +98,7 @@ export function Dropdown() {
       {/* Categories section */}
       <div className="mb-4 border border-cyan-600 rounded-lg overflow-hidden">
         <button
+          type="button"
           className="flex items-center justify-between w-full p-3 bg-cyan-100 hover:bg-cyan-200 transition-colors"
           onClick={() => setIsCategoryOpen(!isCategoryOpen)}
         >
