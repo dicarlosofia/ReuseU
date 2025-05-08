@@ -6,3 +6,4 @@ opencv-python
 pytest
 python-dotenv
 PyJWT
+Pillow

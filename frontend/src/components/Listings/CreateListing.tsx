@@ -20,6 +20,11 @@ import { ArrowUpTrayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ArrowsPo
 import { useRouter } from 'next/router';
 import { listingsApi } from '@/pages/api/listings';
 import { useGlobalContext } from '@/Context/GlobalContext';
+import { useEffect, useRef } from 'react';        
+import { pricefillApi } from '@/pages/api/pricefill';
+
+console.log('💡 pricefillApi is:', pricefillApi)
+console.log('💡 listingsApi is:', listingsApi)
 
 // Props interface for the CreateListing component
 interface CreateListingProps {
@@ -38,6 +43,19 @@ export interface ListingData {
   Images: string[];
 }
 
+//required data to create a price fill request
+export interface PriceFillRequest {
+  category: string
+  name: string
+  description?: string
+}
+
+//required data to get the price range
+export interface PriceRange {
+  minPrice: number
+  maxPrice: number
+}
+
 export default function CreateListing({ onSubmit }: CreateListingProps) {
   
   const router = useRouter();
@@ -52,6 +70,35 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useGlobalContext();
   const [showSuccess, setShowSuccess] = useState(false);
+
+  /* ───────────────────────── PRICE‑SUGGESTION LOGIC ────────── */
+    const [priceSuggestion, setPriceSuggestion] = useState<PriceRange | null>(null);
+    const lastPayloadRef = useRef<PriceFillRequest | null>(null);
+  
+    useEffect(() => {
+      if (!user) return;
+      if (!title.trim() || selectedTags.length === 0) return;
+  
+      const payload: PriceFillRequest = {
+        category: selectedTags[0],
+        name: title.trim(),
+      };
+      if (description.trim()) payload.description = description.trim();
+  
+      if (JSON.stringify(payload) === JSON.stringify(lastPayloadRef.current)) return;
+      lastPayloadRef.current = payload;
+  
+      (async () => {
+        try {
+          const token = await user.getIdToken();
+          const range = await pricefillApi.getPriceRange(payload, token);
+          setPriceSuggestion(range);
+        } catch (e) {
+          console.error('Failed to fetch price range', e);
+        }
+      })();
+    }, [title, selectedTags, description, user]);
+  /* ─────────────────────────────────────────────────────────── */
 
   const UserID = user ? user.uid : "";
   // Available category tags for selection
@@ -390,6 +437,26 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
             />
           </div>
 
+           {/* Model‑suggested price range */}
+           <div>
+            <label className="text-cyan-800 block text-lg mb-2">
+              Model‑Suggested Price&nbsp;(optional):
+            </label>
+
+            {priceSuggestion ? (
+              <div className="rounded-lg border border-yellow-400 bg-yellow-50 p-4 text-yellow-800">
+                Suggested range:&nbsp;
+                <strong>${priceSuggestion.minPrice.toFixed(2)}</strong>
+                &nbsp;–&nbsp;
+                <strong>${priceSuggestion.maxPrice.toFixed(2)}</strong>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-300 bg-gray-50 p-4 text-gray-500">
+                Enter a title and choose a category to see a suggested price range.
+              </div>
+            )}
+          </div>
+
           {/* Photo upload section */}
           <div>
             <label className="text-cyan-800 block text-lg mb-2">
@@ -447,6 +514,7 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
           </div>
         </form>
       )}
+      
     </div>
   );
 }
