@@ -3,6 +3,7 @@ from functools import wraps
 # Middleware to verify JWT tokens and extract user info
 from flask import request, jsonify, g
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,37 @@ def jwt_required(f):
         try:
             # Verify the token's validity.
             logger.debug("Verifying Firebase ID token...")
-            decoded_token = auth.verify_id_token(token)
+            # Allow for 10 seconds of clock skew when verifying the token
+            try:
+                decoded_token = auth.verify_id_token(token, clock_skew_seconds=10)
+            except TypeError:
+                # Fallback for older firebase-admin versions that do not support clock_skew_seconds
+                try:
+                    decoded_token = auth.verify_id_token(token)
+                except Exception as e:
+                    # Manually check for 'Token used too early' and allow 10s leeway
+                    try:
+                        import jwt
+                        payload = jwt.decode(token, options={"verify_signature": False, "verify_iat": False, "verify_nbf": False})
+                        now = int(time.time())
+                        nbf = payload.get('nbf', payload.get('iat', now))
+                        if now + 10 >= nbf:
+                            decoded_token = auth.verify_id_token(token, check_revoked=True)
+                        else:
+                            logger.error("Token used too early and outside allowed leeway.")
+                            return jsonify({'message': 'Token used too early'}), 401
+                    except Exception:
+                        logger.error("Token used too early and outside allowed leeway or JWT decode failed.")
+                        return jsonify({'message': 'Token decode error'}), 401
+
             user_id = decoded_token['uid']
             logger.info(f"Token verified for user_id: {user_id}")
+
+            # Allow account creation even if the user does not yet have an account record
+            if request.method == 'POST' and request.path == '/api/accounts/':
+                g.user_id = user_id
+                g.marketplace_id = None  # Not needed for account creation
+                return f(*args, **kwargs)
 
             # Retrieve the user's account data from the database to determine their marketplace.
             logger.debug(f"Fetching account data for user_id: {user_id}")
