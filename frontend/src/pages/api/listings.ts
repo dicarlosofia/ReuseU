@@ -8,6 +8,9 @@ export interface Listing {
   Price: string
   Category: string[]
   UserID: string
+  /**
+   * SellStatus: 1 = not sold, 0 = sold
+   */
   SellStatus: number
   CreateTime?: string
   CoverImageUrl?: string          // signed URL for cover
@@ -15,6 +18,16 @@ export interface Listing {
 }
 
 export const listingsApi = {
+  // Update only SellStatus for a listing
+  updateSellStatus: async (id: string, sellStatus: number, token?: string) => {
+    const response = await fetch(`${API_BASE_URL}/listings/${id}/sellstatus`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ SellStatus: sellStatus }),
+    });
+    if (!response.ok) throw new Error('Failed to update sell status');
+    return await response.json();
+  },
   // Get all listings with optional auth
   getAll: async (token?: string) => {
     try {

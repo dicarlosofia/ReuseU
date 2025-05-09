@@ -5,6 +5,8 @@ import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
 import { useGlobalContext } from "@/Context/GlobalContext";
 import { accountsApi } from "@/pages/api/accounts";
+import { reviewsApi } from "@/pages/api/reviews";
+import { StarRating } from "../StarRating";
 import EditProfileModal from "./EditProfileModal";
 
 
@@ -24,6 +26,8 @@ const ProfileSection: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [avgRating, setAvgRating] = useState<number>(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     /* ──────────────────────────────────────────────────────────────
@@ -118,10 +122,60 @@ const ProfileSection: React.FC = () => {
         console.error(err);
       } finally {
         setLoading(false);
+        return;
+      }
+
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          console.log(token, user.uid);
+          const res = await accountsApi.getAccount(user.uid, token);
+          if (!res.ok) throw new Error("Failed to fetch profile");
+          const data = await res.json();
+          setProfileData({
+            username: data.Username,
+            name: `${data.First_Name} ${data.Last_Name}`,
+            email: data.email || "",
+            pronouns: data.Pronouns || "",
+            aboutMe: data.AboutMe || "",
+          });
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setLoading(false);
+        }
       }
     };
   
     fetchProfile();
+  }, [user]);
+
+  // Fetch reviews for this user (as seller)
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const reviewsList = await reviewsApi.getByUserId(
+          String(user.uid),
+          token
+        );
+        setReviews(reviewsList);
+        if (reviewsList.length > 0) {
+          const sum = reviewsList.reduce(
+            (acc: number, r: any) => acc + (Number(r.Rating) || 0),
+            0
+          );
+          setAvgRating(Number((sum / reviewsList.length).toFixed(2)));
+        } else {
+          setAvgRating(0);
+        }
+      } catch (e) {
+        setReviews([]);
+        setAvgRating(0);
+      }
+    };
+    fetchReviews();
   }, [user]);
 
   const handleBack = () => {
@@ -139,17 +193,21 @@ const ProfileSection: React.FC = () => {
       const token = await user.getIdToken();
 
       // Split full name into first and last
-      const [firstName, ...lastNameParts] = newData.name.trim().split(' ');
-      const lastName = lastNameParts.join(' ') || '';
+      const [firstName, ...lastNameParts] = newData.name.trim().split(" ");
+      const lastName = lastNameParts.join(" ") || "";
 
-      await accountsApi.updateAccount(user.uid, {
-        Username: newData.username,
-        email: newData.email,
-        Pronouns: newData.pronouns,
-        AboutMe: newData.aboutMe,
-        First_Name: firstName,
-        Last_Name: lastName,
-      }, token);
+      await accountsApi.updateAccount(
+        user.uid,
+        {
+          Username: newData.username,
+          email: newData.email,
+          Pronouns: newData.pronouns,
+          AboutMe: newData.aboutMe,
+          First_Name: firstName,
+          Last_Name: lastName,
+        },
+        token
+      );
 
       // Update local profileData immediately
       setProfileData(newData);
@@ -195,13 +253,24 @@ const ProfileSection: React.FC = () => {
         {/* Profile Header */}
         <div className="col-span-full bg-white rounded-lg shadow-md p-6 border-l-4 border-lime-500">
           <div className="flex items-center gap-3 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-lime-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 text-lime-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             <h1 className="text-2xl font-bold text-lime-800">User Profile</h1>
           </div>
           <div className="mb-4">
-            {renderStars(5)}
+            <StarRating rating={avgRating} count={reviews.length} />
           </div>
         </div>
 
@@ -245,7 +314,9 @@ const ProfileSection: React.FC = () => {
               </>
             )}
           </div>
-            <span className="text-xl font-bold text-cyan-950">{profileData.username}</span>
+            <span className="text-xl font-bold text-cyan-950">
+              {profileData.username}
+            </span>
             {/* ─── NEW: uploader & actions ─── */}
             <input
               type="file"
@@ -275,7 +346,9 @@ const ProfileSection: React.FC = () => {
 
         {/* Profile Right */}
         <div className="col-span-full md:col-span-5 bg-white rounded-lg shadow-md p-6 border-t-4 border-lime-500">
-          <h2 className="text-xl font-semibold text-lime-800 mb-4">Profile Information</h2>
+          <h2 className="text-xl font-semibold text-lime-800 mb-4">
+            Profile Information
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">Full Name</span>
@@ -287,11 +360,15 @@ const ProfileSection: React.FC = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">Pronouns</span>
-              <span className="text-lg text-cyan-950">{profileData.pronouns}</span>
+              <span className="text-lg text-cyan-950">
+                {profileData.pronouns}
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">About Me</span>
-              <p className="text-lg text-cyan-950 whitespace-pre-wrap">{profileData.aboutMe}</p>
+              <p className="text-lg text-cyan-950 whitespace-pre-wrap">
+                {profileData.aboutMe}
+              </p>
             </div>
           </div>
         </div>
@@ -308,8 +385,19 @@ const ProfileSection: React.FC = () => {
             onClick={handleEditClick}
             className="px-4 py-2 text-sm font-medium text-white bg-lime-500 rounded-md hover:bg-lime-800 transition-colors duration-200 shadow-sm flex items-center gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
             </svg>
             Edit Profile
           </button>

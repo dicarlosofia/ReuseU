@@ -118,6 +118,31 @@ def update_listing(listing_id):
         return jsonify({"error": "Failed to update listing"}), 500
 
 
+# Update only the SellStatus of a listing (mark as sold/available)
+@listings_bp.route('/<string:listing_id>/sellstatus', methods=['PATCH'])
+@jwt_required
+def update_sell_status(listing_id):
+    marketplace_id = g.marketplace_id
+    user_id = g.user_id
+    logger.info(f"PATCH /listings/{listing_id}/sellstatus by user {user_id} in marketplace {marketplace_id}")
+    data = request.json
+    if not data or 'SellStatus' not in data:
+        return jsonify({"error": "SellStatus is required"}), 400
+    try:
+        updated = listing_service.update_listing_sell_status(marketplace_id, listing_id, user_id, data['SellStatus'])
+        if updated:
+            logger.info(f"Listing {listing_id} SellStatus updated to {data['SellStatus']} by user {user_id}")
+            return jsonify({"message": "SellStatus updated", "SellStatus": data['SellStatus']}), 200
+        else:
+            logger.warning(f"Listing {listing_id} not found or update failed for SellStatus")
+            return jsonify({"message": f"Listing {listing_id} not found or update failed"}), 404
+    except PermissionError as pe:
+        logger.warning(f"Permission denied for user {user_id} updating SellStatus for listing {listing_id}: {pe}")
+        return jsonify({"error": str(pe)}), 403
+    except Exception as e:
+        logger.error(f"Error updating SellStatus for listing {listing_id}: {e}", exc_info=True)
+        return jsonify({"error": "Failed to update SellStatus"}), 500
+
 # Delete a listing (requires user ownership check).
 @listings_bp.route('/<string:listing_id>', methods=['DELETE'])
 @jwt_required

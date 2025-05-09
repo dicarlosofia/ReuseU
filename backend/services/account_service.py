@@ -56,6 +56,30 @@ class AccountService:
     def __init__(self, db_ref=None):
         self.ref = db_ref or get_db_root()
 
+    def get_favorites(self, account_id: str) -> list:
+        """
+        Retrieve the list of favorite listing IDs for a user.
+        """
+        acc = self.ref.child('Account').child(account_id).get()
+        if not acc:
+            raise NotFoundError(f"Account {account_id} not found.")
+        return acc.get('Favorites', [])
+
+    def update_favorites(self, account_id: str, favorites: list) -> list:
+        """
+        Update the list of favorite listing IDs for a user. If the account does not have a Favorites field, add it.
+        """
+        acc_ref = self.ref.child('Account').child(account_id)
+        existing = acc_ref.get()
+        if not existing:
+            raise NotFoundError(f"Account {account_id} not found.")
+        # Add Favorites field if missing, else update as normal
+        if 'Favorites' not in existing:
+            acc_ref.update({'Favorites': favorites})
+        else:
+            acc_ref.update({'Favorites': favorites})
+        return favorites
+
     def get_acc_by_username(self, username: str) -> dict:
         """
         Retrieve account data by Username (case-insensitive).
@@ -65,8 +89,6 @@ class AccountService:
             if acc.get('Username', '').lower() == username.lower():
                 return acc
         raise NotFoundError(f"Account with username {username} not found.")
-
-        self.ref = db_ref or get_db_root()
 
     def add_account(self, account_data: Dict[str, Any]) -> str:
         """
