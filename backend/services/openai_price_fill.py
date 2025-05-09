@@ -51,7 +51,12 @@ def get_price_prediction(category, name, description):
     
     # Format the category(s) for better prompting 
     # (dict -> "Categ_1, Categ_2, ...")
-    categories_formatted = ", ".join(list(category.values()))
+    if isinstance(category, dict):
+        categories_formatted = ", ".join(category.values())
+    elif isinstance(category, (list, tuple)):
+        categories_formatted = ", ".join(category)
+    else:
+        categories_formatted = str(category)
     
     # Generate price autofill response 
     response = client.responses.create(
@@ -73,7 +78,9 @@ def get_price_prediction(category, name, description):
         raise ValueError(f"Could not parse price range from: {suggestion}")
     
     # OpenAI suggests this price range: 
-    return [lower_bound, upper_bound]
+    return  {
+    "minPrice": lower_bound,
+    "maxPrice": upper_bound}
 
 '''
 Test function to test OpenAI prompting. Feel free to edit the test inputs.
@@ -102,7 +109,7 @@ price_fill_test()
 ******************************************************************************
 AI TEST PROMPT
 '''
-# # Test prompt that creates a haiku
+# Test prompt that creates a haiku
 # completion = client.chat.completions.create(
 #   model="gpt-4.1-nano",
 #   store=True,
