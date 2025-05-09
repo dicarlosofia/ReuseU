@@ -15,14 +15,13 @@
  * The component handles the creation of new listings and uploads them to the server.
  */
 
-import { useState } from 'react';
+import { useState , useMemo} from 'react';
 import { ArrowUpTrayIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/router';
 import { listingsApi } from '@/pages/api/listings';
 import { useGlobalContext } from '@/Context/GlobalContext';
 import { useEffect, useRef } from 'react';        
 import { pricefillApi } from '@/pages/api/pricefill';
-
 console.log('💡 pricefillApi is:', pricefillApi)
 console.log('💡 listingsApi is:', listingsApi)
 
@@ -71,34 +70,55 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
   const { user } = useGlobalContext();
   const [showSuccess, setShowSuccess] = useState(false);
 
-  /* ───────────────────────── PRICE‑SUGGESTION LOGIC ────────── */
-    const [priceSuggestion, setPriceSuggestion] = useState<PriceRange | null>(null);
-    const lastPayloadRef = useRef<PriceFillRequest | null>(null);
-  
-    useEffect(() => {
-      if (!user) return;
-      if (!title.trim() || selectedTags.length === 0) return;
-  
-      const payload: PriceFillRequest = {
-        category: selectedTags[0],
-        name: title.trim(),
-      };
-      if (description.trim()) payload.description = description.trim();
-  
-      if (JSON.stringify(payload) === JSON.stringify(lastPayloadRef.current)) return;
-      lastPayloadRef.current = payload;
-  
-      (async () => {
+
+
+  /* ───────────────────────── price suggestion logic ────────── */
+
+  //setprice suggesting
+  const [priceSuggestion, setPriceSuggestion] = useState<PriceRange | null>(null);
+  const lastPayloadRef = useRef<PriceFillRequest | null>(null);
+  function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+    let timer: ReturnType<typeof setTimeout>;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  //the debouncer code to prevent api spamming for price
+  const debouncedFetchPrice = useMemo(
+    () =>
+      debounce(async (payload: PriceFillRequest) => {
         try {
-          const token = await user.getIdToken();
+          const token = await user!.getIdToken();
           const range = await pricefillApi.getPriceRange(payload, token);
           setPriceSuggestion(range);
         } catch (e) {
           console.error('Failed to fetch price range', e);
         }
-      })();
-    }, [title, selectedTags, description, user]);
-  /* ─────────────────────────────────────────────────────────── */
+      }, 500), //one second timer..waiting for typing to finish
+    [user]
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    if (!title.trim() || selectedTags.length === 0) return;
+
+    // we enforce pricefill format
+    const payload: PriceFillRequest = {
+      category: selectedTags[0],
+      name: title.trim(),
+    };
+    if (description.trim()) payload.description = description.trim();
+
+    if (JSON.stringify(payload) === JSON.stringify(lastPayloadRef.current)) return;
+    lastPayloadRef.current = payload;
+
+    debouncedFetchPrice(payload);
+
+  }, [title, selectedTags, description, user, debouncedFetchPrice]);
+
+/* ─────────────────────────────────────────────────────────── */
 
   const UserID = user ? user.uid : "";
   // Available category tags for selection
@@ -446,15 +466,17 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
             {priceSuggestion ? (
               <div className="rounded-lg border border-yellow-400 bg-yellow-50 p-4 text-yellow-800">
                 Suggested range:&nbsp;
-                <strong>${priceSuggestion.minPrice.toFixed(2)}</strong>
+                <strong>{`$${priceSuggestion.minPrice.toFixed(2)}`}</strong>
                 &nbsp;–&nbsp;
-                <strong>${priceSuggestion.maxPrice.toFixed(2)}</strong>
+                <strong>{`$${priceSuggestion.maxPrice.toFixed(2)}`}</strong>
               </div>
             ) : (
               <div className="rounded-lg border border-gray-300 bg-gray-50 p-4 text-gray-500">
                 Enter a title and choose a category to see a suggested price range.
               </div>
             )}
+            
+
           </div>
 
           {/* Photo upload section */}
