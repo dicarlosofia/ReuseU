@@ -47,6 +47,7 @@ interface AdaptedMessage {
   text: string;
   sender: 'user' | 'other';
   timestamp: string;
+  pending?: boolean;
 }
 
 // Minimal message shape for adapting
@@ -56,7 +57,8 @@ interface MinimalMessage {
   created_at: string;
 }
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+// IMPORTANT: The backend WebSocket server runs on port 5001. Set NEXT_PUBLIC_SOCKET_URL in your environment if deploying elsewhere.
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001';
 
 const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>(
   ({ listingId }, ref) => {
@@ -172,7 +174,7 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
               created_at: m.timestamp,
             }, user.uid))
             .filter((m: AdaptedMessage | null): m is AdaptedMessage => m !== null);
-          setAdaptedMessages(adapted);
+          setAdaptedMessages(adapted); // This will replace all messages, dropping any pending ones
         }
         // Join websocket room for this chat
         if (socketRef.current && chat.id) {
@@ -210,6 +212,8 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             sender: user.uid,
           });
         }
+        // Optimistically update the UI
+
         // Still persist to backend for durability
         const token = await user.getIdToken();
         await chatsApi.sendMessage({
@@ -252,14 +256,38 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
           
           const socket = socketRef.current;
           const onReceiveMessage = (data: { message: string; sender: string; timestamp?: string }) => {
-            setAdaptedMessages(prev => [
-              ...prev,
-              {
-                text: data.message,
-                sender: data.sender === user?.uid ? 'user' : 'other',
-                timestamp: formatTimestamp(data.timestamp || new Date().toISOString()),
-              },
-            ]);
+            const formattedTimestamp = formatTimestamp(data.timestamp || new Date().toISOString());
+            const incoming = {
+              text: data.message,
+              sender: data.sender === user?.uid ? 'user' : 'other' as 'user' | 'other',
+              timestamp: formattedTimestamp,
+            };
+          
+            setAdaptedMessages(prev => {
+              // Check if this is a pending message that can be confirmed
+              const pendingIndex = prev.findIndex(
+                m => m.pending && m.text === incoming.text && m.sender === incoming.sender
+              );
+              
+              if (pendingIndex !== -1) {
+                // Replace pending message with confirmed one
+                const updated = [...prev];
+                updated[pendingIndex] = {
+                  ...incoming,
+                  pending: false // Remove pending status
+                };
+                return updated;
+              }
+          
+              // Check for duplicates (same content, sender and within 2 seconds)
+              const isDuplicate = prev.some(
+                m => m.text === incoming.text && 
+                     m.sender === incoming.sender && 
+                     Math.abs(new Date(m.timestamp).getTime() - new Date(incoming.timestamp).getTime()) < 2000
+              );
+              
+              return isDuplicate ? prev : [...prev, incoming];
+            });
           };
           socket.on('receive_message', onReceiveMessage);
         });
