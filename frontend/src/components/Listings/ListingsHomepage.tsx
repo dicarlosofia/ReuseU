@@ -43,10 +43,11 @@ export default function ListingsHomepage() {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [showMyListings, setShowMyListings] = useState(false)
+  const [favorites, setFavorites] = useState<string[]>([])
   const itemsPerPage = 25
   const currentUserId = user ? user.uid : "";
 
-  // Fetch all listings on component mount
+  // Fetch all listings and favorites on component mount
   useEffect(() => {
     let isMounted = true
     let retryCount = 0
@@ -65,38 +66,42 @@ export default function ListingsHomepage() {
             const token = await user.getIdToken()
             console.log('Got token, fetching listings...')
             const data = await listingsApi.getAll(token)
-            
+            let favs: string[] = [];
+            try {
+              const favResp = await import("@/pages/api/accounts").then(mod => mod.accountsApi.getFavorites(user.uid, token));
+              favs = favResp.Favorites || [];
+            } catch (favErr) {
+              favs = [];
+            }
             if (!isMounted) return
-            
             if (Array.isArray(data)) {
               setListings(data)
             } else {
               setListings([])
             }
+            setFavorites(favs)
           } catch (tokenError) {
             console.error('Error getting token:', tokenError)
             // If token fetch fails, try without token
             const data = await listingsApi.getAll()
-            
             if (!isMounted) return
-            
             if (Array.isArray(data)) {
               setListings(data)
             } else {
               setListings([])
             }
+            setFavorites([])
           }
         } else {
           // If not logged in, fetch without token
           const data = await listingsApi.getAll()
-          
           if (!isMounted) return
-          
           if (Array.isArray(data)) {
             setListings(data)
           } else {
             setListings([])
           }
+          setFavorites([])
         }
       } catch (err) {
         if (isMounted) {
@@ -134,7 +139,9 @@ export default function ListingsHomepage() {
   }
 
   // Filtering logic
-  const filteredListings = listings.filter((listing: ListingType) => {
+  let filteredListings = listings.filter((listing: ListingType) => {
+    // Hide sold items
+    if (listing.SellStatus === 0) return false;
     // Filter by "My Listings"
     if (showMyListings && String(listing.UserID) !== currentUserId) {
       return false;
@@ -168,6 +175,16 @@ export default function ListingsHomepage() {
 
     return true;
   });
+
+  // Sort by favorites if enabled
+  if (filters?.sortByFavorites) {
+    filteredListings = [...filteredListings].sort((a, b) => {
+      const aFav = favorites.includes(String(a.ListingID));
+      const bFav = favorites.includes(String(b.ListingID));
+      if (aFav === bFav) return 0;
+      return aFav ? -1 : 1;
+    });
+  }
 
   // Only apply pagination if we're not showing user's listings
   const displayedListings = showMyListings 
@@ -298,6 +315,19 @@ export default function ListingsHomepage() {
                 image={listing.CoverImageUrl || "/placeholder.jpg"}
                 ListingID={listing.ListingID || ""}
                 UserID={listing.UserID}
+                isFavorited={favorites.includes(listing.ListingID)}
+                onFavoriteToggle={async (newState: boolean) => {
+                  if (!user) return;
+                  const token = await user.getIdToken();
+                  let updatedFavorites: string[];
+                  if (newState) {
+                    updatedFavorites = [...favorites, listing.ListingID];
+                  } else {
+                    updatedFavorites = favorites.filter(id => id !== listing.ListingID);
+                  }
+                  setFavorites(updatedFavorites);
+                  await import("@/pages/api/accounts").then(mod => mod.accountsApi.updateFavorites(user.uid, updatedFavorites, token));
+                }}
               />
             ))}
           </div>

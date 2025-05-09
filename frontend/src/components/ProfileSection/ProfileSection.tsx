@@ -4,6 +4,8 @@ import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
 import { useGlobalContext } from "@/Context/GlobalContext";
 import { accountsApi } from "@/pages/api/accounts";
+import { reviewsApi } from "@/pages/api/reviews";
+import { StarRating } from "../StarRating";
 import EditProfileModal from "./EditProfileModal";
 
 interface ProfileData {
@@ -21,6 +23,8 @@ const ProfileSection: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [avgRating, setAvgRating] = useState<number>(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -60,6 +64,28 @@ const ProfileSection: React.FC = () => {
 
     fetchProfile();
   }, [account, user]);
+
+  // Fetch reviews for this user (as seller)
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const reviewsList = await reviewsApi.getByUserId(String(user.uid), token);
+        setReviews(reviewsList);
+        if (reviewsList.length > 0) {
+          const sum = reviewsList.reduce((acc: number, r: any) => acc + (Number(r.Rating) || 0), 0);
+          setAvgRating(Number((sum / reviewsList.length).toFixed(2)));
+        } else {
+          setAvgRating(0);
+        }
+      } catch (e) {
+        setReviews([]);
+        setAvgRating(0);
+      }
+    };
+    fetchReviews();
+  }, [user]);
 
   const handleBack = () => {
     router.back();
@@ -138,7 +164,7 @@ const ProfileSection: React.FC = () => {
             <h1 className="text-2xl font-bold text-lime-800">User Profile</h1>
           </div>
           <div className="mb-4">
-            {renderStars(5)}
+            <StarRating rating={avgRating} count={reviews.length} />
           </div>
         </div>
 

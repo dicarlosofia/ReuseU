@@ -45,14 +45,15 @@ export interface ListingProps {
   image?: string; // signed S3 URL
   ListingID: string;
   UserID: string;
+  isFavorited: boolean;
+  onFavoriteToggle: (newState: boolean) => void | Promise<void>;
 }
 
-export default function Listing({ title, price, tags, desc, image, ListingID, UserID }: ListingProps) {
+export default function Listing({ title, price, tags, desc, image, ListingID, UserID, isFavorited, onFavoriteToggle }: ListingProps) {
   const globalChatRef = useContext(GlobalChatRefContext);
   const router = useRouter();
   const { listings, setTitle, setListings } = useGlobalContext();
   const { user } = useGlobalContext();
-  const [isFavorited, setIsFavorited] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [isRemoved, setIsRemoved] = useState(false);
@@ -60,8 +61,9 @@ export default function Listing({ title, price, tags, desc, image, ListingID, Us
 
   // Toggle favorite status
   const onFavoriteClick = () => {
-    setIsFavorited(!isFavorited);
+    onFavoriteToggle(!isFavorited);
   };
+
 
   // Handle title click to navigate to full listing page
   const handleTitleClick = (title: string) => {

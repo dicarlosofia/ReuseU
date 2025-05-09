@@ -47,7 +47,11 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [account, setAccount] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    categories: [],
+    priceRanges: [],
+    sortByFavorites: false,
+  });
   const [title, setTitle] = useState<string>('');
   const [listings, setListings] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");

@@ -3,6 +3,8 @@
 // opening and closing chats, sending messages, and updating the chat UI state.
 
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react';
+import { ReviewModal } from '../ReviewModal';
+import { reviewsApi } from '@/pages/api/reviews';
 import { ChevronDownIcon, UserCircleIcon, ArrowLeftIcon, XMarkIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
 import { useGlobalContext } from '@/Context/GlobalContext';
@@ -76,6 +78,20 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     const [listingTitle, setListingTitle] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // Transaction and review state
+    const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [transactionComplete, setTransactionComplete] = useState(false);
+    const [reviewLeft, setReviewLeft] = useState(false);
+    const [reviewError, setReviewError] = useState<string | null>(null);
+    // Seller detection state
+    const [sellerUsername, setSellerUsername] = useState<string | null>(null);
+    const [isSeller, setIsSeller] = useState<boolean>(false);
+    // Track listing SellStatus for chat
+    const [listingSellStatus, setListingSellStatus] = useState<number | null>(null);
+    // Add UID debug
+    const userUID = user?.uid;
+
     // Format timestamps as YYYY-MM-DD HH:mm
     const formatTimestamp = (ts: string) => {
       const date = new Date(ts);
@@ -148,11 +164,29 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
               setListingTitle(listing.Title);
               setChats((prevChats: Chat[]) => prevChats.map((c: Chat) => c.id === chat.id ? { ...c, title: listing.Title } : c));
             }
+            // Set seller username from listing
+            if (listing && listing.UserID) {
+              setSellerUsername(listing.UserID);
+              setIsSeller(userUID === listing.UserID);
+            } else {
+              setSellerUsername(null);
+              setIsSeller(false);
+            }
+            // Track SellStatus
+            if (listing && typeof listing.SellStatus === 'number') {
+              setListingSellStatus(listing.SellStatus);
+            } else {
+              setListingSellStatus(null);
+            }
           } catch (e) {
             setListingTitle('');
+            setSellerUsername(null);
+            setIsSeller(false);
           }
         } else {
           setListingTitle('');
+          setSellerUsername(null);
+          setIsSeller(false);
         }
         const token = await user.getIdToken();
         const full = await chatsApi.getById(chat.id, token);
@@ -455,6 +489,95 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
                       )}
                       <div ref={messagesEndRef} />
                     </div>
+                    {/* Transaction and review flow */}
+                    {/* Only the seller can mark as complete */}
+                    {/* Debug info for button visibility */}
+
+                    {!transactionComplete && selectedChat && isSeller && listingSellStatus !== 0 && (
+                      <div className="flex justify-center my-3">
+                        <button
+                          className="px-4 py-2 bg-lime-600 text-white rounded hover:bg-lime-700"
+                          onClick={() => setTransactionModalOpen(true)}
+                        >
+                          Finished transaction? Click here
+                        </button>
+                      </div>
+                    )}
+                    {/* Transaction completion modal */}
+                    {transactionModalOpen && (
+                      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                          <h2 className="text-xl font-semibold mb-4 text-cyan-900">Confirm Transaction Completion</h2>
+                          <p className="mb-3 text-cyan-800">Please confirm you have completed the transaction for this listing.</p>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                              onClick={() => setTransactionModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="px-4 py-2 bg-lime-600 text-white rounded hover:bg-lime-700"
+                              onClick={async () => {
+                                setTransactionModalOpen(false);
+                                // Mark the listing as sold in the backend
+                                try {
+                                  if (selectedChat?.listing_id && user) {
+                                    const token = await user.getIdToken();
+                                    const resp = await (await import('@/pages/api/listings')).listingsApi.updateSellStatus(String(selectedChat.listing_id), 0, token); // 0 = sold
+                                    setTransactionComplete(true);
+                                    setListingSellStatus(0);
+                                    setReviewError('SellStatus update successful: ' + JSON.stringify(resp));
+                                    console.log('SellStatus update response:', resp);
+                                  }
+                                } catch (e: any) {
+                                  setTransactionComplete(false);
+                                  setReviewError('SellStatus update failed: ' + (e?.message || String(e)));
+                                  console.error('SellStatus update error:', e);
+                                }
+                              }}
+                            >
+                              Mark as Complete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Show review button for buyer after transaction complete */}
+                    {transactionComplete && !reviewLeft && user && selectedChat && !isSeller && (
+                      <div className="flex justify-center my-3">
+                        <button
+                          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                          onClick={() => setReviewModalOpen(true)}
+                        >
+                          Leave a Review
+                        </button>
+                      </div>
+                    )}
+                    {/* Review modal */}
+                    <ReviewModal
+                      isOpen={reviewModalOpen}
+                      onClose={() => setReviewModalOpen(false)}
+                      onSubmit={async (rating, comment) => {
+                        setReviewError(null);
+                        if (!user || !selectedChat) return;
+                        try {
+                          const token = await user.getIdToken();
+                          await reviewsApi.create({
+                            listing_id: Number(selectedChat.listing_id),
+                            reviewer_id: Number(user.uid),
+                            rating,
+                            comment,
+                          }, token);
+                          setReviewLeft(true);
+                          setReviewModalOpen(false);
+                        } catch (e: any) {
+                          setReviewError(e.message || 'Failed to submit review');
+                        }
+                      }}
+                    />
+                    {reviewError && <div className="text-red-500 text-center mt-2">{reviewError}</div>}
+
                     {/* Message input */}
                     <form
                       className="text-cyan-700 flex items-center gap-2 p-2 border-t border-cyan-100 bg-white"
