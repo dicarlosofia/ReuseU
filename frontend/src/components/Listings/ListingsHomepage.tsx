@@ -1,6 +1,6 @@
 /**
  * Listings Homepage Component
- * 
+ *
  * This is the main listings page that displays all available items for reuse.
  * Features include:
  * - Grid display of listings with images, titles, prices, and descriptions
@@ -8,25 +8,25 @@
  * - "Show My Listings" toggle to view only user's own listings
  * - Load More functionality
  * - Responsive grid layout
- * 
+ *
  * Updated with recycling/green theme
  */
 
-import Listing from "./Listing"
-import { Dropdown } from "../Dropdown/Dropdown"
-import { useGlobalContext } from "@/Context/GlobalContext"
+import Listing from "./Listing";
+import { Dropdown } from "../Dropdown/Dropdown";
+import { useGlobalContext } from "@/Context/GlobalContext";
 // Homepage for browsing all listings
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 // Import API for fetching listings data
-import { listingsApi, Listing as ListingType } from "@/pages/api/listings"
-import { FilterIcon, UserIcon } from "lucide-react"
+import { listingsApi, Listing as ListingType } from "@/pages/api/listings";
+import { FilterIcon, UserIcon } from "lucide-react";
 
 // Price range options for filtering
 interface PriceRange {
-  min: number
-  max: number
-  label: string
+  min: number;
+  max: number;
+  label: string;
 }
 
 const priceRanges: PriceRange[] = [
@@ -35,108 +35,120 @@ const priceRanges: PriceRange[] = [
   { min: 50, max: 100, label: "$50 - $100" },
   { min: 100, max: 500, label: "$100 - $500" },
   { min: 500, max: Infinity, label: "Above $500" },
-]
+];
 
 export default function ListingsHomepage() {
-  const { filters, setListings, listings, user, setFilters, searchQuery, setSearchQuery } = useGlobalContext()
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showMyListings, setShowMyListings] = useState(false)
-  const [favorites, setFavorites] = useState<string[]>([])
-  const itemsPerPage = 25
+  const {
+    filters,
+    setListings,
+    listings,
+    user,
+    setFilters,
+    searchQuery,
+    setSearchQuery,
+  } = useGlobalContext();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showMyListings, setShowMyListings] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const itemsPerPage = 25;
   const currentUserId = user ? user.uid : "";
 
   // Fetch all listings and favorites on component mount
   useEffect(() => {
-    let isMounted = true
-    let retryCount = 0
-    const maxRetries = 3
+    let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
 
     const fetchListings = async () => {
       try {
-        setIsLoading(true)
-        setError(null)
-        
+        setIsLoading(true);
+        setError(null);
+
         // Wait for user to be available if we're logged in
         if (user) {
           try {
             // Add a small delay to allow token to be ready
-            await new Promise(resolve => setTimeout(resolve, 500))
-            const token = await user.getIdToken()
-            console.log('Got token, fetching listings...')
-            const data = await listingsApi.getAll(token)
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const token = await user.getIdToken();
+            console.log("Got token, fetching listings...");
+            const data = await listingsApi.getAll(token);
             let favs: string[] = [];
             try {
-              const favResp = await import("@/pages/api/accounts").then(mod => mod.accountsApi.getFavorites(user.uid, token));
+              const favResp = await import("@/pages/api/accounts").then((mod) =>
+                mod.accountsApi.getFavorites(user.uid, token)
+              );
               favs = favResp.Favorites || [];
             } catch (favErr) {
               favs = [];
             }
-            if (!isMounted) return
+            if (!isMounted) return;
             if (Array.isArray(data)) {
-              setListings(data)
+              setListings(data);
             } else {
-              setListings([])
+              setListings([]);
             }
-            setFavorites(favs)
+            setFavorites(favs);
           } catch (tokenError) {
-            console.error('Error getting token:', tokenError)
+            console.error("Error getting token:", tokenError);
             // If token fetch fails, try without token
-            const data = await listingsApi.getAll()
-            if (!isMounted) return
+            const data = await listingsApi.getAll();
+            if (!isMounted) return;
             if (Array.isArray(data)) {
-              setListings(data)
+              setListings(data);
             } else {
-              setListings([])
+              setListings([]);
             }
-            setFavorites([])
+            setFavorites([]);
           }
         } else {
           // If not logged in, fetch without token
-          const data = await listingsApi.getAll()
-          if (!isMounted) return
+          const data = await listingsApi.getAll();
+          if (!isMounted) return;
           if (Array.isArray(data)) {
-            setListings(data)
+            setListings(data);
           } else {
-            setListings([])
+            setListings([]);
           }
-          setFavorites([])
+          setFavorites([]);
         }
       } catch (err) {
         if (isMounted) {
-          console.error("Error fetching listings:", err)
+          console.error("Error fetching listings:", err);
           // Don't show error for 401s during initial load
-          if (err instanceof Error && err.message.includes('401')) {
-            console.log('Ignoring 401 during initial load')
-            return
+          if (err instanceof Error && err.message.includes("401")) {
+            console.log("Ignoring 401 during initial load");
+            return;
           }
-          setError(err instanceof Error ? err.message : "Failed to fetch listings")
-          
+          setError(
+            err instanceof Error ? err.message : "Failed to fetch listings"
+          );
+
           // Retry logic for initial fetch
           if (retryCount < maxRetries) {
-            retryCount++
-            console.log(`Retrying fetch (${retryCount}/${maxRetries})...`)
-            setTimeout(fetchListings, 1000 * retryCount) // Exponential backoff
+            retryCount++;
+            console.log(`Retrying fetch (${retryCount}/${maxRetries})...`);
+            setTimeout(fetchListings, 1000 * retryCount); // Exponential backoff
           }
         }
       } finally {
-        if (isMounted) setIsLoading(false)
+        if (isMounted) setIsLoading(false);
       }
-    }
+    };
 
     // Add a small initial delay before first fetch
-    setTimeout(fetchListings, 1000)
-    
+    setTimeout(fetchListings, 1000);
+
     return () => {
-      isMounted = false
-    }
-  }, [user, setListings])
+      isMounted = false;
+    };
+  }, [user, setListings]);
 
   // Load more listings
   const loadMore = () => {
-    setCurrentPage(prev => prev + 1)
-  }
+    setCurrentPage((prev) => prev + 1);
+  };
 
   // Filtering logic
   let filteredListings = listings.filter((listing: ListingType) => {
@@ -150,7 +162,11 @@ export default function ListingsHomepage() {
     // Filter by categories (strict AND logic)
     if (filters?.categories && filters.categories.length > 0) {
       // All selected categories must be present in the listing.Category
-      if (!filters.categories.every((cat: string) => listing.Category.includes(cat))) {
+      if (
+        !filters.categories.every((cat: string) =>
+          listing.Category.includes(cat)
+        )
+      ) {
         return false;
       }
     }
@@ -159,7 +175,11 @@ export default function ListingsHomepage() {
     if (filters?.priceRanges && filters.priceRanges.length > 0) {
       const price = parseFloat(listing.Price);
       const matchesPrice = priceRanges.some((range) => {
-        return filters.priceRanges.includes(range.label) && price >= range.min && price < range.max;
+        return (
+          filters.priceRanges.includes(range.label) &&
+          price >= range.min &&
+          price < range.max
+        );
       });
       if (!matchesPrice) return false;
     }
@@ -169,7 +189,9 @@ export default function ListingsHomepage() {
       const q = searchQuery.trim().toLowerCase();
       const inTitle = listing.Title?.toLowerCase().includes(q);
       const inDesc = listing.Description?.toLowerCase().includes(q);
-      const inCategory = listing.Category?.some((cat: string) => cat.toLowerCase().includes(q));
+      const inCategory = listing.Category?.some((cat: string) =>
+        cat.toLowerCase().includes(q)
+      );
       if (!inTitle && !inDesc && !inCategory) return false;
     }
 
@@ -187,11 +209,12 @@ export default function ListingsHomepage() {
   }
 
   // Only apply pagination if we're not showing user's listings
-  const displayedListings = showMyListings 
-    ? filteredListings 
-    : filteredListings.slice(0, currentPage * itemsPerPage)
+  const displayedListings = showMyListings
+    ? filteredListings
+    : filteredListings.slice(0, currentPage * itemsPerPage);
 
-  const showLoadMore = !showMyListings && displayedListings.length < filteredListings.length
+  const showLoadMore =
+    !showMyListings && displayedListings.length < filteredListings.length;
 
   if (isLoading) {
     return (
@@ -201,7 +224,7 @@ export default function ListingsHomepage() {
           <p className="text-lime-800 mt-4 font-medium">Loading listings...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -212,12 +235,12 @@ export default function ListingsHomepage() {
           <p className="mt-2">{error}</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (filteredListings.length === 0) {
     return (
-      <div className="min-h-screen pt-20 bg-cyan-100">
+      <div className="min-h-screen pt-10 bg-cyan-100">
         <div className="flex gap-8 max-w-7xl mx-auto px-4">
           <div className="w-64 shrink-0">
             <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
@@ -228,7 +251,6 @@ export default function ListingsHomepage() {
                 </h2>
               </div>
               <div className="p-4 h-full">
-
                 <div className="mb-4 p-3 bg-lime-500 rounded-lg border border-cyan-800">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -249,7 +271,9 @@ export default function ListingsHomepage() {
           </div>
           <div className="flex-1">
             <div className="bg-white p-8 rounded-lg shadow-sm text-center">
-              <p className="text-gray-500">No listings found matching your filters</p>
+              <p className="text-gray-500">
+                No listings found matching your filters
+              </p>
               <button
                 onClick={() => setFilters({ categories: [], priceRanges: [] })}
                 className="mt-4 px-4 py-2 bg-lime-700 text-white rounded-lg hover:bg-lime-800 transition-colors"
@@ -260,11 +284,11 @@ export default function ListingsHomepage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen pt-20 bg-cyan-100">
+    <div className="min-h-screen pt-4 rounded-lg bg-cyan-100">
       <div className="flex gap-8 max-w-7xl mx-auto px-4">
         <div className="w-64 shrink-0">
           <div className="sticky top-24 bg-white rounded-lg shadow-sm overflow-hidden border border-cyan-600">
@@ -281,8 +305,8 @@ export default function ListingsHomepage() {
                     type="checkbox"
                     checked={showMyListings}
                     onChange={() => {
-                      setShowMyListings(!showMyListings)
-                      setCurrentPage(1) // Reset pagination when toggling
+                      setShowMyListings(!showMyListings);
+                      setCurrentPage(1); // Reset pagination when toggling
                     }}
                     className="form-checkbox h-5 w-5 text-lime-700 rounded"
                   />
@@ -298,8 +322,7 @@ export default function ListingsHomepage() {
         </div>
 
         <div className="flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/*
               Listing receives UserID and ListingID from each listing.
               The Listing component is responsible for fetching the username using UserID
@@ -323,10 +346,18 @@ export default function ListingsHomepage() {
                   if (newState) {
                     updatedFavorites = [...favorites, listing.ListingID];
                   } else {
-                    updatedFavorites = favorites.filter(id => id !== listing.ListingID);
+                    updatedFavorites = favorites.filter(
+                      (id) => id !== listing.ListingID
+                    );
                   }
                   setFavorites(updatedFavorites);
-                  await import("@/pages/api/accounts").then(mod => mod.accountsApi.updateFavorites(user.uid, updatedFavorites, token));
+                  await import("@/pages/api/accounts").then((mod) =>
+                    mod.accountsApi.updateFavorites(
+                      user.uid,
+                      updatedFavorites,
+                      token
+                    )
+                  );
                 }}
               />
             ))}
@@ -345,5 +376,5 @@ export default function ListingsHomepage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

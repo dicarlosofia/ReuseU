@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery || "");
 
-  // Navigation helpers
+  // Navigation helpersf
   const handleReuseClick = () => router.push('/');
   const handleMakeAListingClick = () => router.push('/create');
   const handleUserCircleClick = () => router.push('/my_profile');

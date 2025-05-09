@@ -25,15 +25,6 @@ export interface AccountData {
   Favorites?: string[];
 }
 
-export interface Chat {
-  id?: number;
-  listing_id: number;
-  buyer_id: number;
-  seller_id: number;
-  created_at?: string;
-  updated_at?: string;
-  messages?: Message[];
-}
 
 export const accountsApi = {
   getAccount: async (accountId: string, token: string) => {

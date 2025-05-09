@@ -1,5 +1,3 @@
-# routes/accounts.py
-# Account-related API endpoints.
 from flask import Blueprint, jsonify, request
 from services.account_service import account_service
 from services.exceptions import NotFoundError, DatabaseError

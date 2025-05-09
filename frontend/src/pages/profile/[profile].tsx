@@ -51,7 +51,7 @@ const PublicProfile: React.FC = () => {
     return (
       <>
         <Dashboard />
-        <div className="flex justify-center items-center min-h-[60vh] bg-cyan-50">
+        <div className="flex justify-center items-center min-h-[60vh] bg-cyan-600">
           <span className="text-lg text-gray-500">Loading profile...</span>
         </div>
       </>
@@ -61,7 +61,7 @@ const PublicProfile: React.FC = () => {
     return (
       <>
         <Dashboard />
-        <div className="flex justify-center items-center min-h-[60vh] bg-cyan-50">
+        <div className="flex justify-center items-center min-h-[60vh] bg-cyan-600">
           <span className="text-lg text-red-500">{error}</span>
         </div>
       </>
@@ -74,7 +74,7 @@ const PublicProfile: React.FC = () => {
   return (
     <>
       <Dashboard />
-      <main className="min-h-screen bg-cyan-50 pt-8 pb-16">
+      <main className="min-h-screen bg-cyan-600 pt-8 pb-16">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-7 gap-8 items-start">
           {/* Profile Left */}
           <div className="md:col-span-2 flex flex-col items-center bg-white rounded-lg shadow-md p-8 border-t-4 border-lime-500">

@@ -4,7 +4,12 @@
 
 import { useState } from "react";
 import { useGlobalContext } from "@/Context/GlobalContext";
-import { ChevronDownIcon, ChevronUpIcon, TagIcon, BanknoteIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  TagIcon,
+  BanknoteIcon,
+} from "lucide-react";
 
 // Interface for filters object
 // categories: array of selected category names
@@ -30,28 +35,28 @@ export function Dropdown() {
   const categoryGroups: CategoryGroup[] = [
     {
       name: "Electronics",
-      subcategories: ["Laptops", "Phones", "Tablets", "TVs"]
+      subcategories: ["Laptops", "Phones", "Tablets", "TVs"],
     },
     {
       name: "Furniture",
-      subcategories: ["Tables", "Chairs", "Desks", "Beds", "Storage"]
+      subcategories: ["Tables", "Chairs", "Desks", "Beds", "Storage"],
     },
     {
       name: "Clothing",
-      subcategories: ["Tops", "Bottoms", "Dresses", "Shirts"]
+      subcategories: ["Tops", "Bottoms", "Dresses", "Shirts"],
     },
     {
       name: "Home & Kitchen",
-      subcategories: ["Appliances", "Cookware", "Dinnerware", "Utensils"]
+      subcategories: ["Appliances", "Cookware", "Dinnerware", "Utensils"],
     },
     {
       name: "Arts & Crafts",
-      subcategories: ["Art", "Crafts", "Books"]
+      subcategories: ["Art", "Crafts", "Books"],
     },
     {
       name: "Other",
-      subcategories: ["Other"]
-    }
+      subcategories: ["Other"],
+    },
   ];
 
   const priceRanges = [
@@ -59,20 +64,45 @@ export function Dropdown() {
     "$10 - $50",
     "$50 - $100",
     "$100 - $500",
-    "Above $500"
+    "Above $500",
   ];
 
-  const handleCategoryToggle = (category: string) => {
+  // Toggle a subcategory (checkbox)
+  const handleSubcategoryToggle = (subcategory: string) => {
     const currentCategories = filters?.categories || [];
-    if (currentCategories.includes(category)) {
+    if (currentCategories.includes(subcategory)) {
       setFilters({
         ...filters,
-        categories: currentCategories.filter((c: string) => c !== category)
+        categories: currentCategories.filter((c: string) => c !== subcategory),
       });
     } else {
       setFilters({
         ...filters,
-        categories: [...currentCategories, category]
+        categories: [...currentCategories, subcategory],
+      });
+    }
+  };
+
+  // Toggle all subcategories for a main category
+  const handleCategoryToggle = (category: CategoryGroup) => {
+    const allSelected = category.subcategories.every((sub) =>
+      (filters?.categories || []).includes(sub)
+    );
+    if (allSelected) {
+      // Remove all subcategories
+      setFilters({
+        ...filters,
+        categories: (filters?.categories || []).filter(
+          (c: string) => !category.subcategories.includes(c)
+        ),
+      });
+    } else {
+      // Add any missing subcategories
+      setFilters({
+        ...filters,
+        categories: Array.from(
+          new Set([...(filters?.categories || []), ...category.subcategories])
+        ),
       });
     }
   };
@@ -82,17 +112,19 @@ export function Dropdown() {
     if (currentPriceRanges.includes(priceRange)) {
       setFilters({
         ...filters,
-        priceRanges: currentPriceRanges.filter((p: string) => p !== priceRange)
+        priceRanges: currentPriceRanges.filter((p: string) => p !== priceRange),
       });
     } else {
       setFilters({
         ...filters,
-        priceRanges: [...currentPriceRanges, priceRange]
+        priceRanges: [...currentPriceRanges, priceRange],
       });
     }
   };
 
-  const hasActiveFilters = (filters?.categories?.length || 0) > 0 || (filters?.priceRanges?.length || 0) > 0;
+  const hasActiveFilters =
+    (filters?.categories?.length || 0) > 0 ||
+    (filters?.priceRanges?.length || 0) > 0;
 
   return (
     <div className="text-cyan-950">
@@ -102,10 +134,21 @@ export function Dropdown() {
           <input
             type="checkbox"
             checked={!!filters?.sortByFavorites}
-            onChange={() => setFilters({ ...filters, sortByFavorites: !filters?.sortByFavorites })}
+            onChange={() =>
+              setFilters({
+                ...filters,
+                sortByFavorites: !filters?.sortByFavorites,
+              })
+            }
             className="form-checkbox h-4 w-4 text-red-500 rounded"
           />
-          <span className={filters?.sortByFavorites ? "text-red-600 font-semibold" : "text-gray-600"}>
+          <span
+            className={
+              filters?.sortByFavorites
+                ? "text-red-600 font-semibold"
+                : "text-gray-600"
+            }
+          >
             Sort by Favorites
           </span>
         </label>
@@ -132,9 +175,13 @@ export function Dropdown() {
           <div className="p-3">
             <div className="space-y-2">
               {categoryGroups.map((group) => {
-                const isMainChecked = filters?.categories?.includes(group.name) || false;
+                const isMainChecked =
+                  filters?.categories?.includes(group.name) || false;
                 return (
-                  <div key={group.name} className="border-b border-cyan-600 last:border-0 pb-2 last:pb-0">
+                  <div
+                    key={group.name}
+                    className="border-b border-cyan-600 last:border-0 pb-2 last:pb-0"
+                  >
                     {/* Main category checkbox */}
                     <label className="flex items-center space-x-2 cursor-pointer mb-1 pl-1">
                       <input
@@ -143,15 +190,27 @@ export function Dropdown() {
                         onChange={() => handleCategoryToggle(group.name)}
                         className="form-checkbox h-5 w-5 text-lime-800 border-lime-700 rounded shadow-sm"
                       />
-                      <span className={isMainChecked ? "text-emerald-900 font-bold" : "text-gray-800 font-semibold"}>
+                      <span
+                        className={
+                          isMainChecked
+                            ? "text-emerald-900 font-bold"
+                            : "text-gray-800 font-semibold"
+                        }
+                      >
                         {group.name}
                       </span>
                     </label>
                     <button
                       className="flex items-center justify-between w-full p-2 hover:bg-cyan-100 rounded-lg transition-colors"
-                      onClick={() => setExpandedCategory(expandedCategory === group.name ? null : group.name)}
+                      onClick={() =>
+                        setExpandedCategory(
+                          expandedCategory === group.name ? null : group.name
+                        )
+                      }
                     >
-                      <span className="font-medium text-emerald-700">{group.name}</span>
+                      <span className="font-medium text-emerald-700">
+                        {group.name}
+                      </span>
                       {expandedCategory === group.name ? (
                         <ChevronUpIcon className="h-4 w-4 text-lime-700" />
                       ) : (
@@ -162,14 +221,26 @@ export function Dropdown() {
                     {expandedCategory === group.name && (
                       <div className="pl-4 mt-2 space-y-1">
                         {group.subcategories.map((subcategory) => (
-                          <label key={subcategory} className="flex items-center space-x-2 cursor-pointer">
+                          <label
+                            key={subcategory}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
                             <input
                               type="checkbox"
-                              checked={filters?.categories?.includes(subcategory) || false}
+                              checked={
+                                filters?.categories?.includes(subcategory) ||
+                                false
+                              }
                               onChange={() => handleCategoryToggle(subcategory)}
                               className="form-checkbox h-4 w-4 text-lime-700 rounded"
                             />
-                            <span className={filters?.categories?.includes(subcategory) ? "text-emerald-700" : "text-gray-600"}>
+                            <span
+                              className={
+                                filters?.categories?.includes(subcategory)
+                                  ? "text-emerald-700"
+                                  : "text-gray-600"
+                              }
+                            >
                               {subcategory}
                             </span>
                           </label>
@@ -205,14 +276,23 @@ export function Dropdown() {
           <div className="p-3">
             <div className="space-y-2">
               {priceRanges.map((price) => (
-                <label key={price} className="text-lime-500 flex items-center space-x-2 cursor-pointer">
+                <label
+                  key={price}
+                  className="text-lime-500 flex items-center space-x-2 cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={filters?.priceRanges?.includes(price) || false}
                     onChange={() => handlePriceRangeToggle(price)}
                     className="form-checkbox h-4 w-4 text-lime-700 rounded"
                   />
-                  <span className={filters?.priceRanges?.includes(price) ? "text-emerald-700" : "text-gray-600"}>
+                  <span
+                    className={
+                      filters?.priceRanges?.includes(price)
+                        ? "text-emerald-700"
+                        : "text-gray-600"
+                    }
+                  >
                     {price}
                   </span>
                 </label>
