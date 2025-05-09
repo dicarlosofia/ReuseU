@@ -547,28 +547,6 @@ export default function CreateListing({ onSubmit }: CreateListingProps) {
 
           </div>
 
-           {/* Model‑suggested price range */}
-           <div>
-            <label className="text-cyan-800 block text-lg mb-2">
-              Model‑Suggested Price&nbsp;(optional):
-            </label>
-
-            {priceSuggestion ? (
-              <div className="rounded-lg border border-yellow-400 bg-yellow-50 p-4 text-yellow-800">
-                Suggested range:&nbsp;
-                <strong>{`$${priceSuggestion.minPrice.toFixed(2)}`}</strong>
-                &nbsp;–&nbsp;
-                <strong>{`$${priceSuggestion.maxPrice.toFixed(2)}`}</strong>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-gray-300 bg-gray-50 p-4 text-gray-500">
-                Enter a title and choose a category to see a suggested price range.
-              </div>
-            )}
-            
-
-          </div>
-
           {/* Photo upload section */}
           <div>
             <label className="text-cyan-800 block text-lg mb-2">Photos:</label>
