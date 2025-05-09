@@ -83,6 +83,8 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [transactionComplete, setTransactionComplete] = useState(false);
     const [reviewLeft, setReviewLeft] = useState(false);
+    // Debug: store fetched reviews for this listing
+    const [debugReviews, setDebugReviews] = useState<any[]>([]);
     const [reviewError, setReviewError] = useState<string | null>(null);
     // Seller detection state
     const [sellerUsername, setSellerUsername] = useState<string | null>(null);
@@ -150,6 +152,7 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
 
     // Open a specific chat and load its messages
     const openChat = useCallback(async (chat: Chat) => {
+      setReviewModalOpen(false);
       try {
         if (!user) {
           console.error('User not authenticated');
@@ -167,7 +170,7 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             // Set seller username from listing
             if (listing && listing.UserID) {
               setSellerUsername(listing.UserID);
-              setIsSeller(userUID === listing.UserID);
+              setIsSeller(user && user.uid === listing.UserID);
             } else {
               setSellerUsername(null);
               setIsSeller(false);
@@ -175,18 +178,37 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
             // Track SellStatus
             if (listing && typeof listing.SellStatus === 'number') {
               setListingSellStatus(listing.SellStatus);
+              setTransactionComplete(listing.SellStatus === 0);
             } else {
               setListingSellStatus(null);
+              setTransactionComplete(false);
+            }
+            // Check if this user has already left a review for this listing
+            if (listing && chat.listing_id && user?.uid) {
+              const token = await user.getIdToken();
+              const reviews = await reviewsApi.getByListingId(chat.listing_id, token);
+              const alreadyReviewed = Array.isArray(reviews) && reviews.some((r: any) => String(r.reviewer_id) === String(user.uid));
+              setReviewLeft(alreadyReviewed);
+              setDebugReviews(Array.isArray(reviews) ? reviews : []);
+            } else {
+              setReviewLeft(false);
+              setDebugReviews([]);
             }
           } catch (e) {
             setListingTitle('');
             setSellerUsername(null);
             setIsSeller(false);
+            setListingSellStatus(null);
+            setTransactionComplete(false);
+            setReviewLeft(false);
           }
         } else {
           setListingTitle('');
           setSellerUsername(null);
           setIsSeller(false);
+          setListingSellStatus(null);
+          setTransactionComplete(false);
+          setReviewLeft(false);
         }
         const token = await user.getIdToken();
         const full = await chatsApi.getById(chat.id, token);
@@ -489,6 +511,19 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
                       )}
                       <div ref={messagesEndRef} />
                     </div>
+                    {/* DEBUG INFO - Only shown in development mode */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="bg-yellow-50 border border-yellow-300 rounded p-2 mb-2 text-xs text-yellow-900">
+                        <div><b>Debug Info:</b></div>
+                        <div>transactionComplete: {String(transactionComplete)}</div>
+                        <div>reviewLeft: {String(reviewLeft)}</div>
+                        <div>isSeller: {String(isSeller)}</div>
+                        <div>user?.uid: {user?.uid}</div>
+                        <div>selectedChat.listing_id: {selectedChat?.listing_id}</div>
+                        <div>Fetched reviews for this listing:</div>
+                        <pre style={{maxHeight:'120px',overflow:'auto'}}>{JSON.stringify(debugReviews, null, 2)}</pre>
+                      </div>
+                    )}
                     {/* Transaction and review flow */}
                     {/* Only the seller can mark as complete */}
                     {/* Debug info for button visibility */}
@@ -503,6 +538,42 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
                         </button>
                       </div>
                     )}
+
+                    {transactionComplete && !reviewLeft && user && selectedChat && !isSeller && (
+                      <div className="flex justify-center my-3">
+                        <button
+                          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                          onClick={() => setReviewModalOpen(true)}
+                        >
+                          Leave a Review
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Review modal */}
+                    <ReviewModal
+                      isOpen={reviewModalOpen}
+                      onClose={() => setReviewModalOpen(false)}
+                      onSubmit={async (rating, comment) => {
+                        setReviewError(null);
+                        if (!user || !selectedChat) return;
+                        try {
+                          const token = await user.getIdToken();
+                          await reviewsApi.create({
+                            listing_id: Number(selectedChat.listing_id),
+                            reviewer_id: Number(user.uid),
+                            rating,
+                            comment,
+                          }, token);
+                          setReviewLeft(true);
+                          setReviewModalOpen(false);
+                        } catch (e: any) {
+                          setReviewError(e.message || 'Failed to submit review');
+                        }
+                      }}
+                    />
+                    {reviewError && <div className="text-red-500 text-center mt-2">{reviewError}</div>}
+
                     {/* Transaction completion modal */}
                     {transactionModalOpen && (
                       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -529,6 +600,11 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
                                     setListingSellStatus(0);
                                     setReviewError('SellStatus update successful: ' + JSON.stringify(resp));
                                     console.log('SellStatus update response:', resp);
+                                    // After marking as complete, check if review is already left
+                                    const token2 = await user.getIdToken();
+                                    const reviews = await reviewsApi.getByListingId(selectedChat.listing_id, token2);
+                                    const alreadyReviewed = Array.isArray(reviews) && reviews.some((r: any) => String(r.reviewer_id) === String(user.uid));
+                                    setReviewLeft(alreadyReviewed);
                                   }
                                 } catch (e: any) {
                                   setTransactionComplete(false);
@@ -543,40 +619,6 @@ const ChatComponent = forwardRef<{ fetchChats: () => void }, ChatComponentProps>
                         </div>
                       </div>
                     )}
-                    {/* Show review button for buyer after transaction complete */}
-                    {transactionComplete && !reviewLeft && user && selectedChat && !isSeller && (
-                      <div className="flex justify-center my-3">
-                        <button
-                          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                          onClick={() => setReviewModalOpen(true)}
-                        >
-                          Leave a Review
-                        </button>
-                      </div>
-                    )}
-                    {/* Review modal */}
-                    <ReviewModal
-                      isOpen={reviewModalOpen}
-                      onClose={() => setReviewModalOpen(false)}
-                      onSubmit={async (rating, comment) => {
-                        setReviewError(null);
-                        if (!user || !selectedChat) return;
-                        try {
-                          const token = await user.getIdToken();
-                          await reviewsApi.create({
-                            listing_id: Number(selectedChat.listing_id),
-                            reviewer_id: Number(user.uid),
-                            rating,
-                            comment,
-                          }, token);
-                          setReviewLeft(true);
-                          setReviewModalOpen(false);
-                        } catch (e: any) {
-                          setReviewError(e.message || 'Failed to submit review');
-                        }
-                      }}
-                    />
-                    {reviewError && <div className="text-red-500 text-center mt-2">{reviewError}</div>}
 
                     {/* Message input */}
                     <form
