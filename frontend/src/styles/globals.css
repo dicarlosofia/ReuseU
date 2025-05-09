@@ -6,10 +6,7 @@
   GREEN WE WILL USE: #74C365
 
 */
-@theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+
 
 :root {
   --background: #ffffff;
@@ -35,4 +32,13 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: 'Lora', Arial, Helvetica, sans-serif; /* Apply Treova font */
+}
+
+/* Hide scrollbars utility */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }

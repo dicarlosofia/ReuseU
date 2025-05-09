@@ -22,6 +22,7 @@ export interface AccountData {
    * but must be included in payloads sent to backend.
    */
   email?: string;
+  Favorites?: string[];
 }
 
 
@@ -36,6 +37,30 @@ export const accountsApi = {
   // Explicit username-based lookup (calls same endpoint, but clearer intent)
   getAccountByUsername: async (username: string, token: string) => {
     return accountsApi.getAccount(username, token);
+  },
+
+  /**
+   * Get the user's favorites list
+   */
+  getFavorites: async (accountId: string, token: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/favorites`, {
+      headers: getAuthHeaders(token),
+    });
+    if (!response.ok) throw new Error("Failed to fetch favorites");
+    return response.json();
+  },
+
+  /**
+   * Update the user's favorites list
+   */
+  updateFavorites: async (accountId: string, favorites: string[], token: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/favorites`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ Favorites: favorites }),
+    });
+    if (!response.ok) throw new Error("Failed to update favorites");
+    return response.json();
   },
 
   createAccount: async (accountData: AccountData, token: string) => {

@@ -30,6 +30,19 @@ def create_review(current_user):
     except Exception as e:
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+# Get all reviews for a user (for profile star rating/count)
+@reviews_bp.route('/user/<string:user_id>', methods=['GET'])
+@jwt_required
+def get_reviews_for_user(current_user, user_id):
+    try:
+        # Get all reviews in DB
+        all_reviews = review_service.get_all_reviews()
+        # Filter reviews where SellerID == user_id (user is reviewee)
+        user_reviews = [r for r in all_reviews if str(r.get('SellerID')) == str(user_id)]
+        return jsonify(user_reviews), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # Update review is not implemented in services yet
 @reviews_bp.route('/<string:listing_id>', methods=['PUT'])
 @jwt_required

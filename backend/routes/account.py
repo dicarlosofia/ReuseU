@@ -58,3 +58,28 @@ def update_account(account_id):
         return jsonify({"message": str(e)}), 404
     except DatabaseError as e:
         return jsonify({"error": str(e)}), 500
+
+# --- FAVORITES ENDPOINTS ---
+@accounts_bp.route('/<string:account_id>/favorites', methods=['GET'])
+@jwt_required
+def get_favorites(account_id):
+    try:
+        favorites = account_service.get_favorites(account_id)
+        return jsonify({"Favorites": favorites}), 200
+    except NotFoundError as e:
+        return jsonify({"message": str(e)}), 404
+    except DatabaseError as e:
+        return jsonify({"error": str(e)}), 500
+
+@accounts_bp.route('/<string:account_id>/favorites', methods=['PUT'])
+@jwt_required
+def update_favorites(account_id):
+    payload = request.get_json() or {}
+    favorites = payload.get('Favorites', [])
+    try:
+        updated = account_service.update_favorites(account_id, favorites)
+        return jsonify({"Favorites": updated}), 200
+    except NotFoundError as e:
+        return jsonify({"message": str(e)}), 404
+    except DatabaseError as e:
+        return jsonify({"error": str(e)}), 500

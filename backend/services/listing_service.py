@@ -7,6 +7,7 @@ import uuid
 
 from . import blob_storage
 from .exceptions import ServiceError, NotFoundError, ValidationError, DatabaseError, PermissionDeniedError
+from services import listing_report_service
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,37 @@ def get_db_root():
 
 class ListingService:
     def __init__(self, db_ref=None):
+        """
+        Initialize ListingService with an optional database reference for testing.
+        """
+        logger.debug("Initializing ListingService")
+        self.ref = db_ref or get_db_root()
+        logger.debug("Database reference obtained")
+
+    def update_listing_sell_status(self, marketplace_id: str, listing_id: str, user_id: str, sell_status: int) -> bool:
+        """
+        Update only the SellStatus field of a listing. Only the owner can update.
+        Returns True if updated, False if not found or not permitted.
+        """
+        try:
+            listings_ref = self._get_marketplace_listings_ref(marketplace_id)
+            listing_ref = listings_ref.child(listing_id)
+            listing = listing_ref.get()
+            if not listing:
+                logger.warning(f"Listing {listing_id} not found for SellStatus update.")
+                return False
+            if str(listing.get('UserID')) != str(user_id):
+                logger.warning(f"User {user_id} not permitted to update SellStatus for listing {listing_id}.")
+                raise PermissionError("Not authorized to update SellStatus for this listing.")
+            listing_ref.update({'SellStatus': sell_status})
+            logger.info(f"Listing {listing_id} SellStatus updated to {sell_status}.")
+            return True
+        except PermissionError:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating SellStatus for listing {listing_id}: {e}", exc_info=True)
+            return False
+
         """
         Initialize ListingService with an optional database reference for testing.
         """
@@ -372,4 +404,5 @@ del_listing = listing_service.del_listing
 get_listing = listing_service.get_listing
 get_all_listings_user = listing_service.get_all_listings_user
 get_all_listings_total = listing_service.get_all_listings_total
-update_listing = listing_service.update_listing # Expose the new update method
+update_listing = listing_service.update_listing
+update_listing_sell_status = listing_service.update_listing_sell_status

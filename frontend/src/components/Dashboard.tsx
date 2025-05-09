@@ -1,6 +1,7 @@
+// Main dashboard for logged-in users
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useGlobalContext } from '@/Context/GlobalContext';
-import { useState } from 'react';
 import {
   MagnifyingGlassIcon,
   UserCircleIcon,
@@ -13,8 +14,9 @@ import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { logout } = useGlobalContext();
+  const { logout, searchQuery, setSearchQuery } = useGlobalContext();
   const [showSettings, setShowSettings] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchQuery || "");
 
   // Navigation helpersf
   const handleReuseClick = () => router.push('/');
@@ -28,6 +30,22 @@ export default function Dashboard() {
   };
   // SOFIA ADDITION
   const handleAboutUs = () => router.push('/abt_us')
+
+  // --- Search ---
+  // Keep localSearch in sync with global searchQuery
+  React.useEffect(() => {
+    setLocalSearch(searchQuery || "");
+  }, [searchQuery]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(localSearch);
+    if (router.pathname !== "/") {
+      router.push("/");
+    }
+    // If already on homepage, ListingsHomepage will react to global searchQuery
+  };
+
 
   return (
     <div className="flex items-center fixed top-0 left-0 w-full h-16 bg-lime-800 text-white shadow-md z-50">
@@ -43,16 +61,21 @@ export default function Dashboard() {
       </div>
 
       {/* Search bar */}
-      <div className="relative w-3/4 pl-5 flex-grow mx-4">
+      <form className="relative w-3/4 pl-5 flex-grow mx-4" onSubmit={handleSearch}>
         <div className="relative flex items-center">
           <input
             className="w-full pl-10 pr-4 py-2 rounded-full bg-white text-cyan-950 focus:outline-none focus:ring-2 focus:ring-cyan-600 placeholder-gray-500"
             type="text"
             placeholder="Search for a listing..."
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
+            aria-label="Search for a listing"
           />
-          <MagnifyingGlassIcon className="absolute left-3 h-5 w-5 text-lime-800" />
+          <button type="submit" className="absolute left-3 h-5 w-5 text-lime-800 bg-transparent border-none p-0 cursor-pointer">
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </button>
         </div>
-      </div>
+      </form>
 
       {/* Create listing */}
       <div className="px-2 h-full flex items-center">
