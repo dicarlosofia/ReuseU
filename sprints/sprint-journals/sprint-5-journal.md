@@ -20,6 +20,13 @@
 
 ### (1) Adoption Plan (Epilogue)
 
+*Date written: 5/12/2025*
+
+*What we did to carry out our plan, and the outcomes:* 
+
+#### How we implemented our plan:
+- All of the issues that I addressed above have been resolved. We are much closer to deployment now, and all we need to do now is make sure that images work now on our [working website url](https://reuse-u-ruddy.vercel.app/). We addressed one risk at a time, talking out each one as we went. We are very close to deployment now, and plan to have it completed after the semester is over to have a complete project for our coding portfolios.
+
 ## (3) Bug Logging
 FOR COMPLETING THIS PART, SOFIA PUT THE INSTRUCTIONS IN [THIS ISSUE](https://github.com/dicarlosofia/ReuseU/issues/155)
 
