@@ -20,6 +20,13 @@
 
 ### (1) Adoption Plan (Epilogue)
 
+*Date written: 5/12/2025*
+
+*What we did to carry out our plan, and the outcomes:* 
+
+#### How we implemented our plan:
+- All of the issues that I addressed above have been resolved. We are much closer to deployment now, and all we need to do now is make sure that images work now on our [working website url](https://reuse-u-ruddy.vercel.app/). We addressed one risk at a time, talking out each one as we went. We are very close to deployment now, and plan to have it completed after the semester is over to have a complete project for our coding portfolios.
+
 ## (3) Bug Logging
 FOR COMPLETING THIS PART, SOFIA PUT THE INSTRUCTIONS IN [THIS ISSUE](https://github.com/dicarlosofia/ReuseU/issues/155)
 
@@ -34,3 +41,72 @@ FOR COMPLETING THIS PART, SOFIA PUT THE INSTRUCTIONS IN [THIS ISSUE](https://git
 ## (4) License
 We have chosen the following license: **GNU General Public License v3.0**
 * Navigation to it in our Repo: `ReuseU/LICENSE`
+
+## (5) Wrap-up work
+<!---
+Make your repository presentable to future audiences.
+
+Potential future audiences may include:
+
+ - future 324 students looking for inspiration for their project proposals
+ - prospective employers looking at your github
+ - prospective users looking to get started with your product
+
+Consider the following tasks to make it presentable
+
+ - code cleanup
+ - final documentation
+
+Add a section to your Sprint Journal describing what you did.
+
+--->
+* **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
+
+## (7) Blog Post
+<!--- PASTE THE BLOG POST BELOW: --->
+# ReuseU - Blog Post
+
+
+
+### [Link to our repository](https://github.com/dicarlosofia/ReuseU)
+
+### Our Team:
+* Howie Youngdahl
+* Sofia DiCarlo
+* Peter Murphy
+* Timur Kasimov
+* Trung Le
+* Krishna Nayar
+
+
+### Categories:
+- 2025 Spring
+- Colleges
+- Web Application
+- For Sale
+- Marketplace
+- Students
+- Reduce, Reuse, Recycle
+- Environmental Impact
+
+
+
+### Overview
+
+ReuseU is a sustainability project for college students, by college students. It’s a web application designed for college campuses that lets students trade their used items with each other to help reduce their environmental impact, as well as save good bucks by buying used. It also offers great convenience as users  can easily find a variety of items on their campus from their fellow students without the need to visit stores that can be miles away. Students can easily access the website both on their desktop and mobile devices, post listings of what they wish to sell, as browse through items that other users are selling. You can think of ReuseU as the “For Sale” section of Craigslist, but localized to college campuses.
+
+
+### Motivation
+
+On move-out day, do you find that you have a bunch of stuff you don't need anymore? Or, during the school year, you need a new coffee maker, but the ones at the store are too expensive? Worry no longer! This is what inspired us as a team to create a way for students to buy and exchange their goods throughout the year. The average college student creates 640 pounds of trash annually, and our hope is that ReuseU will become a place for students to help reduce and reuse items that students accumulate throughout the year. We as a team came together through the trenches of our Grinnell College Software Development class, CSC-324, and this is the project that resulted from that!
+
+
+### Product
+
+
+As described above, our product is a web application where users sell and purchase used items with other college students. Read on to get a better idea of all the features our website offers:
+* Each user has an account on the website that they can create with their institution’s email (.edu email). They can personalize their profile page by uploading a profile picture or writing a few words about themselves, as well as changing their preferred name and pronouns. 
+* Users can create listings about items they would like to sell, as well as see their active listings and delete the ones that are no longer active. When creating a listing, they can include the item’s title and description, a price, tags, and photos of the product. We have an OpenAI feature that suggests prices for items that users are trying to sell.
+* Users can also search for items they’re interested in by simply browsing through the homepage, using the search bar, or using filters. Filters let users organize items by price, categories, or favorited listings. Users can expand a listing by clicking on it to read a full description, scrolls through additional photos, and see seller’s info as well as message the seller about purchasing an item.
+* Chats are implemented and can be used to further inquire sellers about items, or set up a meeting a check out the items in question. 
+* There is also an About Us page, where users can read on more about the project and the motivation behind.

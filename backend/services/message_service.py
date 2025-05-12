@@ -151,3 +151,31 @@ def delete_chat(listing_id):
     #     ref.child('Chat').child(new_key).set(target_chat)
     # else:
     #     print("Chat does not exist")
+
+def delete_message(message_id):
+    """
+    Delete a specific message from the database using its message ID.
+    
+    Args:
+        message_id (str): The ID of the message to delete
+    """
+    try:
+        # Delete the message from the Message table
+        ref.child('Message').child(str(message_id)).delete()
+        
+        # Find and update any chats that contain this message
+        chats = ref.child('Chat').get()
+        if isinstance(chats, dict):
+            for chat_id, chat in chats.items():
+                if chat and 'Messages' in chat:
+                    # Remove the message from the chat's Messages string
+                    messages_str = chat['Messages']
+                    # Use regex to find and remove the message with this ID
+                    pattern = r'\{[^}]*\'MessageID\': \'' + str(message_id) + r'\'[^}]*\}'
+                    new_messages_str = re.sub(pattern, '', messages_str)
+                    if new_messages_str != messages_str:
+                        # Update the chat with the modified messages string
+                        ref.child('Chat').child(chat_id).update({'Messages': new_messages_str})
+    except Exception as e:
+        print(f"Error deleting message: {str(e)}")
+        raise e

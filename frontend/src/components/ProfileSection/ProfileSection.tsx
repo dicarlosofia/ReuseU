@@ -1,22 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserCircleIcon, StarIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
+import { useGlobalContext } from "@/Context/GlobalContext";
+import { accountsApi } from "@/pages/api/accounts";
+import { reviewsApi } from "@/pages/api/reviews";
+import { StarRating } from "../StarRating";
 import EditProfileModal from "./EditProfileModal";
 
-// Props interface for the ProfileSection component
-interface ProfileProps {
-  username: string;
-  rating: number;
-  name: string;
-  email: string;
-  pronouns: string;
-  aboutMe: string;
-  itemsSold: number;
-  itemsBought: number;
-}
-
-// Data structure for editable profile information
 interface ProfileData {
   username: string;
   name: string;
@@ -25,166 +16,262 @@ interface ProfileData {
   aboutMe: string;
 }
 
-const ProfileSection: React.FC<ProfileProps> = ({
-  username,
-  rating,
-  name,
-  email,
-  pronouns,
-  aboutMe,
-  itemsSold,
-  itemsBought,
-}) => {
+const ProfileSection: React.FC = () => {
   const router = useRouter();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    username,
-    name,
-    email,
-    pronouns,
-    aboutMe,
-  });
+  const { user, account } = useGlobalContext();
 
-  // Handle back button click
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [avgRating, setAvgRating] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (account) {
+        setProfileData({
+          username: account.Username,
+          name: `${account.First_Name} ${account.Last_Name}`,
+          email: account.email || "",
+          pronouns: account.Pronouns || "",
+          aboutMe: account.AboutMe || "",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          console.log(token, user.uid);
+          const res = await accountsApi.getAccount(user.uid, token);
+          if (!res.ok) throw new Error("Failed to fetch profile");
+          const data = await res.json();
+          setProfileData({
+            username: data.Username,
+            name: `${data.First_Name} ${data.Last_Name}`,
+            email: data.email || "",
+            pronouns: data.Pronouns || "",
+            aboutMe: data.AboutMe || "",
+          });
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [account, user]);
+
+  // Fetch reviews for this user (as seller)
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const reviewsList = await reviewsApi.getByUserId(
+          String(user.uid),
+          token
+        );
+        setReviews(reviewsList);
+        if (reviewsList.length > 0) {
+          const sum = reviewsList.reduce(
+            (acc: number, r: any) => acc + (Number(r.Rating) || 0),
+            0
+          );
+          setAvgRating(Number((sum / reviewsList.length).toFixed(2)));
+        } else {
+          setAvgRating(0);
+        }
+      } catch (e) {
+        setReviews([]);
+        setAvgRating(0);
+      }
+    };
+    fetchReviews();
+  }, [user]);
+
   const handleBack = () => {
     router.back();
   };
 
-  // Open edit profile modal
   const handleEditClick = () => {
     setIsEditModalOpen(true);
   };
 
-  // Save profile changes
-  const handleSaveProfile = (newData: ProfileData) => {
-    setProfileData(newData);
-    setIsEditModalOpen(false);
-    // TODO: Add API call to save profile changes
+  const handleSaveProfile = async (newData: ProfileData) => {
+    try {
+      if (!user) throw new Error("User not authenticated");
+
+      const token = await user.getIdToken();
+
+      // Split full name into first and last
+      const [firstName, ...lastNameParts] = newData.name.trim().split(" ");
+      const lastName = lastNameParts.join(" ") || "";
+
+      await accountsApi.updateAccount(
+        user.uid,
+        {
+          Username: newData.username,
+          email: newData.email,
+          Pronouns: newData.pronouns,
+          AboutMe: newData.aboutMe,
+          First_Name: firstName,
+          Last_Name: lastName,
+        },
+        token
+      );
+
+      // Update local profileData immediately
+      setProfileData(newData);
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+    }
   };
 
-  // Generate star rating display
   const renderStars = (rating: number) => {
     const stars = [];
     const maxStars = 5;
-    
+
     for (let i = 1; i <= maxStars; i++) {
-      if (i <= rating) {
-        stars.push(
+      stars.push(
+        i <= rating ? (
           <StarIconSolid key={i} className="w-6 h-6 text-yellow-400" />
-        );
-      } else {
-        stars.push(
+        ) : (
           <StarIcon key={i} className="w-6 h-6 text-yellow-400" />
-        );
-      }
+        )
+      );
     }
-    
+
     return (
       <div className="flex items-center gap-1">
         {stars}
-        <span className="ml-2 text-gray-600">({rating}/5)</span>
+        <span className="ml-2 text-cyan-950">({rating}/5)</span>
       </div>
     );
   };
 
-  // Main profile layout with recycling-themed green design
+  if (loading || !profileData) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-cyan-600">
+        <p className="text-lime-800 font-semibold">Loading profile...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex justify-center min-h-screen bg-green-50">
+    <div className="flex justify-center min-h-screen bg-cyan-600">
       <div className="grid grid-cols-1 md:grid-cols-8 gap-8 items-start w-full max-w-5xl mx-auto p-6">
-        {/* Profile Header with recycling icon */}
-        <div className="col-span-full bg-white rounded-lg shadow-md p-6 border-l-4 border-green-600">
+        {/* Profile Header */}
+        <div className="col-span-full bg-white rounded-lg shadow-md p-6 border-l-4 border-lime-500">
           <div className="flex items-center gap-3 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 text-lime-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
-            <h1 className="text-2xl font-bold text-green-800">User Profile</h1>
+            <h1 className="text-2xl font-bold text-lime-800">User Profile</h1>
           </div>
-          
-          {/* Star Rating */}
           <div className="mb-4">
-            {renderStars(rating)}
+            <StarRating rating={avgRating} count={reviews.length} />
           </div>
         </div>
-        
-        {/* Left column - Profile picture and basic info */}
-        <div className="col-span-full md:col-span-3 bg-white rounded-lg shadow-md p-6 border-t-4 border-green-600">
+
+        {/* Profile Left */}
+        <div className="col-span-full md:col-span-3 bg-white rounded-lg shadow-md p-6 border-t-4 border-lime-500">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="bg-green-100 rounded-full p-2">
-                <UserCircleIcon className="w-32 h-32 text-green-700" />
-              </div>
-              <div className="absolute bottom-0 right-0 bg-green-600 rounded-full p-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div className="bg-lime-200 rounded-full p-2">
+                <UserCircleIcon className="w-32 h-32 text-lime-600" />
               </div>
             </div>
-            <span className="text-xl font-bold text-gray-800">{profileData.username}</span>
-            
-            {/* Stats cards */}
-            <div className="grid grid-cols-2 gap-4 w-full mt-4">
-              <div className="bg-green-100 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-green-800">{itemsSold}</div>
-                <div className="text-sm text-green-700">Items Recycled</div>
-              </div>
-              <div className="bg-green-100 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-green-800">{itemsBought}</div>
-                <div className="text-sm text-green-700">Items Acquired</div>
-              </div>
-            </div>
+            <span className="text-xl font-bold text-cyan-950">
+              {profileData.username}
+            </span>
           </div>
         </div>
-        
-        {/* Right column - Detailed profile information */}
-        <div className="col-span-full md:col-span-5 bg-white rounded-lg shadow-md p-6 border-t-4 border-green-600">
-          <h2 className="text-xl font-semibold text-green-800 mb-4">Profile Information</h2>
+
+        {/* Profile Right */}
+        <div className="col-span-full md:col-span-5 bg-white rounded-lg shadow-md p-6 border-t-4 border-lime-500">
+          <h2 className="text-xl font-semibold text-lime-800 mb-4">
+            Profile Information
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">Full Name</span>
-              <span className="text-lg text-gray-800">{profileData.name}</span>
+              <span className="text-lg text-cyan-950">{profileData.name}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">Email Address</span>
-              <span className="text-lg text-gray-800">{profileData.email}</span>
+              <span className="text-lg text-cyan-950">{profileData.email}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">Pronouns</span>
-              <span className="text-lg text-gray-800">{profileData.pronouns}</span>
+              <span className="text-lg text-cyan-950">
+                {profileData.pronouns}
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">About Me</span>
-              <p className="text-lg text-gray-800 whitespace-pre-wrap">{profileData.aboutMe}</p>
+              <p className="text-lg text-cyan-950 whitespace-pre-wrap">
+                {profileData.aboutMe}
+              </p>
             </div>
           </div>
         </div>
-        
+
         {/* Action buttons */}
         <div className="col-span-full flex justify-end gap-4">
-          <button 
+          <button
             onClick={handleBack}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200 shadow-sm"
+            className="px-4 py-2 text-sm font-medium text-cyan-950 bg-cyan-100 rounded-md hover:bg-gray-200 transition-colors duration-200 shadow-sm"
           >
             Back
           </button>
-          <button 
+          <button
             onClick={handleEditClick}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors duration-200 shadow-sm flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-white bg-lime-500 rounded-md hover:bg-lime-800 transition-colors duration-200 shadow-sm flex items-center gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
             </svg>
             Edit Profile
           </button>
         </div>
       </div>
 
-      {/* Edit profile modal */}
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveProfile}
-        initialData={profileData}
-      />
+      {/* Edit Modal */}
+      {profileData && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialData={profileData}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   );
 };

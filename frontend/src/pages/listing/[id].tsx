@@ -16,12 +16,13 @@ const ListingPage: NextPage = () => {
 
   useEffect(() => {
     if (!router.isReady || !id) return
-
+    console.log(listing);
     const fetchListing = async () => {
       try {
         setIsLoading(true)
         const data = await listings.getById(id as string)
         setListing(data)
+        console.log(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch listing")
         console.error("Error fetching listing:", err)
@@ -55,7 +56,7 @@ const ListingPage: NextPage = () => {
     )
   }
 
-  if (!listing) {
+  if (!listing || !listing.Title) {
     return (
       <div>
         <Dashboard />
@@ -66,21 +67,21 @@ const ListingPage: NextPage = () => {
     )
   }
 
+  console.log('[ListingPage] Rendering listing:', listing);
   return (
-    <div>
+    <div className="bg-cyan-800">
       <Dashboard />
       <FullListing
         title={listing.Title}
         price={parseFloat(listing.Price)}
-        tags={listing.Category}
+        tags={Array.isArray(listing.Category) ? listing.Category : []}
         desc={listing.Description}
-        image={
-          listing.Images?.[0] ||
-          listing.base64images?.[0]?.data ||
-          ""
-        }
-        sellerId={listing.UserID}
-      />
+        image={listing.ImageUrls?.[0]} // first image as cover
+        additionalImages={listing.ImageUrls?.slice(1) || []}
+  sellerId={listing.UserID}
+  listingId={listing.ListingID}
+/>
+
     </div>
   )
 }

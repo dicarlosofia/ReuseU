@@ -41,7 +41,7 @@ const LoginPage = () => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to ReuseU
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-cyan-950">
             Please use your .edu email address
           </p>
         </div>
@@ -111,6 +111,11 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <div className="text-right mt-1">
+                <Link href="/forgot" className="text-xs text-blue-600 hover:underline">
+                  Forgot your password?
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -128,7 +133,7 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-cyan-950">
             Don't have an account?{' '}
             <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
               Sign up

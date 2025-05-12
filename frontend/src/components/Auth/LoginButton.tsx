@@ -15,7 +15,7 @@ export const LoginButton = () => {
       {error && <div className="text-red-500 text-sm">{error}</div>}
       {user ? (
         <div className="flex items-center gap-2">
-          <UserCircleIcon className="h-6 w-6 text-gray-600" />
+          <UserCircleIcon className="h-6 w-6 text-cyan-950" />
           <span className="text-sm">{user.displayName || user.email}</span>
           <button
             onClick={logout}

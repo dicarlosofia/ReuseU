@@ -178,3 +178,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypircnode_modules/
+backend/pk3.json

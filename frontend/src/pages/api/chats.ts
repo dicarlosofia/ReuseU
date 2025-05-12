@@ -1,47 +1,47 @@
 import { API_BASE_URL, getAuthHeaders } from './config';
 
 export interface Message {
-  id?: number;
-  chat_id: number;
-  sender_id: number;
+  id: string;
+  chat_id: string;
+  sender_id: string;
   content: string;
-  created_at?: string;
+  created_at: string;
 }
 
 export interface Chat {
-  id?: number;
-  listing_id: number;
-  buyer_id: number;
-  seller_id: number;
+  id: string;
+  listing_id: string;
+  buyer_id?: string; // Optional for backend chat creation
+  seller_id: string;
   created_at?: string;
   updated_at?: string;
   messages?: Message[];
 }
 
 export const chatsApi = {
-  // Get all chats for a user
-  getByUserId: async (userId: number) => {
-    const response = await fetch(`${API_BASE_URL}/chats/user/${userId}`, {
-      headers: getAuthHeaders(),
+  // Get all chats for the authenticated user (JWT required)
+  getByUserId: async (token: string) => {
+    const response = await fetch(`${API_BASE_URL}/chats/user`, {
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch chats');
     return response.json();
   },
 
   // Get a single chat with messages
-  getById: async (chatId: number) => {
+  getById: async (chatId: string, token: string) => {
     const response = await fetch(`${API_BASE_URL}/chats/${chatId}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch chat');
     return response.json();
   },
 
   // Create a new chat
-  create: async (chat: Omit<Chat, 'id' | 'created_at' | 'updated_at' | 'messages'>) => {
+  create: async (chat: Omit<Chat, 'id' | 'created_at' | 'updated_at' | 'messages'>, token: string) => {
     const response = await fetch(`${API_BASE_URL}/chats`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
       body: JSON.stringify(chat),
     });
     if (!response.ok) throw new Error('Failed to create chat');
@@ -49,10 +49,10 @@ export const chatsApi = {
   },
 
   // Send a message in a chat
-  sendMessage: async (message: Omit<Message, 'id' | 'created_at'>) => {
-    const response = await fetch(`${API_BASE_URL}/chats/message`, {
+  sendMessage: async (message: Omit<Message, 'id' | 'created_at'>, chatId: string, token: string) => {
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/messages`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
       body: JSON.stringify(message),
     });
     if (!response.ok) throw new Error('Failed to send message');
@@ -60,19 +60,19 @@ export const chatsApi = {
   },
 
   // Get messages for a chat
-  getMessages: async (chatId: number) => {
+  getMessages: async (chatId: number, token: string) => {
     const response = await fetch(`${API_BASE_URL}/chats/${chatId}/messages`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch messages');
     return response.json();
   },
 
   // Delete a chat by id
-  deleteChatById: async (chatId: number) => {
+  deleteChatById: async (chatId: number, token: string) => {
     const response = await fetch(`${API_BASE_URL}/chats/${chatId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to delete chat');
     return response.json();

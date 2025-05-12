@@ -17,28 +17,28 @@ export interface Review {
 
 export const reviewsApi = {
   // Get all reviews for a listing
-  getByListingId: async (listingId: string) => {
+  getByListingId: async (listingId: string, token: string) => {
     const response = await fetch(`${API_BASE_URL}/reviews/${listingId}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch reviews');
     return response.json();
   },
 
   // Get all reviews by a user
-  getByUserId: async (userId: number) => {
+  getByUserId: async (userId: number, token: string) => {
     const response = await fetch(`${API_BASE_URL}/reviews/user/${userId}`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to fetch user reviews');
     return response.json();
   },
 
   // Create a new review
-  create: async (review: Omit<Review, 'id' | 'created_at' | 'updated_at'>) => {
+  create: async (review: Omit<Review, 'id' | 'created_at' | 'updated_at'>, token: string) => {
     const response = await fetch(`${API_BASE_URL}/reviews`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
       body: JSON.stringify(review),
     });
     if (!response.ok) throw new Error('Failed to create review');
@@ -46,10 +46,10 @@ export const reviewsApi = {
   },
 
   // Update a review
-  update: async (id: number, review: Partial<Review>) => {
+  update: async (id: number, review: Partial<Review>, token: string) => {
     const response = await fetch(`${API_BASE_URL}/reviews/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
       body: JSON.stringify(review),
     });
     if (!response.ok) throw new Error('Failed to update review');
@@ -57,10 +57,10 @@ export const reviewsApi = {
   },
 
   // Delete a review
-  delete: async (id: number) => {
+  delete: async (id: number, token: string) => {
     const response = await fetch(`${API_BASE_URL}/reviews/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
     });
     if (!response.ok) throw new Error('Failed to delete review');
     return response.json();
