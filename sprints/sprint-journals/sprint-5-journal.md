@@ -61,6 +61,11 @@ Add a section to your Sprint Journal describing what you did.
 
 --->
 * **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
+* **Timur**: 
+* **Howie**: 
+* **Trung**: 
+* **Peter**: 
+* **Krishna**: 
 
 ## (7) Blog Post
 <!--- PASTE THE BLOG POST BELOW: --->
@@ -110,3 +115,31 @@ As described above, our product is a web application where users sell and purcha
 * Users can also search for items they’re interested in by simply browsing through the homepage, using the search bar, or using filters. Filters let users organize items by price, categories, or favorited listings. Users can expand a listing by clicking on it to read a full description, scrolls through additional photos, and see seller’s info as well as message the seller about purchasing an item.
 * Chats are implemented and can be used to further inquire sellers about items, or set up a meeting a check out the items in question. 
 * There is also an About Us page, where users can read on more about the project and the motivation behind.
+
+### Process
+
+- At the beginning of the semester, for our team communication, we established a group chat on Microsoft Teams. As the semester went on, we found that response times were longer than we had originally anticipated. To solve this, we decided as a team to sit down and find a better solution to get better response times, and with open communication and workshopping a few ideas, we found that an iMessage group chat worked the best for us. Not all of us could access Teams directly from our phones, so having direct text messages was the best way to reach most of us the quickest.
+
+- After having initial version of both the frontend and backend, a challenge we faced was connecting the two components together. This required quite a bit of learning and set up with API routes, CORS, and page hierarchy to allow routing to happen. Another issue of the similar format we faced was ensuring  that the creation of an account through Firebase Authentication on the frontend correctly triggered the account creation in the database, which required both the frontend and the backend running in the testing/development processes. Lastly, deploying the working version of the website to Vercel also took a lot of manipulation and some last minute functionality changes, for instance because Vercel had limitations on the size of the project it could involve and the large size of one of the computer vision libraries we used for image compression made it impossible to deploy through Vercel. As such, we had to quickly find a smaller and more focused library that allowed the same image compression functionality while also fitting within the size limits required by Vercel. In general, making sure all the different components and technologies of our website came together and worked in unison proved to be a much harder task than we initially anticipated it to be.
+
+
+### Advice [Optional]
+* Research your technologies early and make sure they are compatible with each other.
+* Follow the paper prototype specification when developing your website, use that previously done work instead of designing everything from scratch.
+
+
+### Acknowledgments
+
+We would like to thank our Professor Leah Perlmutter for her instruction, guidance, and feedback throughout our work on this project. We would also like to thank Destany Best, our course mentor, for her continuous feedback, encouragement and support. A shout out to all of our classmates for providing feedback and asking insightful questions during our presentations, and finally we want to say thank you to our stakeholder testers, Melina, Cam, and Mason, for testing out multiple versions of our website and providing Insightful feedback.
+
+
+
+###	Pictures of your choice (at least 3)
+
+![Photo 1](../../assets/about_us.png)
+![Photo 2](../../assets/prototype/prototype3.jpeg)
+![Photo 3](../../assets/prototype/prototype4.jpeg)
+![Photo 4](../../assets/Database_Schema.jpg)
+![Photo 5](../../assets/profile_page.png)
+
+
