@@ -46,7 +46,6 @@ We have chosen the following license: **GNU General Public License v3.0**
 <!---
 Make your repository presentable to future audiences.
 
-
 Potential future audiences may include:
 
  - future 324 students looking for inspiration for their project proposals
@@ -61,4 +60,7 @@ Consider the following tasks to make it presentable
 Add a section to your Sprint Journal describing what you did.
 
 --->
+* **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
 
+## (7) Blog Post
+<!--- PASTE THE BLOG POST BELOW: --->
