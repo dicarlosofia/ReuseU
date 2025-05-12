@@ -41,3 +41,24 @@ FOR COMPLETING THIS PART, SOFIA PUT THE INSTRUCTIONS IN [THIS ISSUE](https://git
 ## (4) License
 We have chosen the following license: **GNU General Public License v3.0**
 * Navigation to it in our Repo: `ReuseU/LICENSE`
+
+## (5) Wrap-up work
+<!---
+Make your repository presentable to future audiences.
+
+
+Potential future audiences may include:
+
+ - future 324 students looking for inspiration for their project proposals
+ - prospective employers looking at your github
+ - prospective users looking to get started with your product
+
+Consider the following tasks to make it presentable
+
+ - code cleanup
+ - final documentation
+
+Add a section to your Sprint Journal describing what you did.
+
+--->
+

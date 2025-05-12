@@ -1,16 +1,16 @@
-# ReuseU
+# [ReuseU](https://reuse-u-ruddy.vercel.app/)
  ## Description
  _ReuseU is a web-based platform that lets students on college campuses reduce their spending and environmental impact by creating a small-scale, highly local online marketplace where they can trade personal belongings with other students on their campus._
 
 ---
 
  ## Reports
- *Navigate to the **milestones** folder within the **<> code** tab. Each report is stored within this folder.*
+ *Navigate to the [**milestones**](https://github.com/dicarlosofia/ReuseU/tree/main/milestones) folder within the **<> code** tab. Each report is stored within this folder.*
 
 ---
 
 ## Sprints
-* Navigate to the **sprints/sprint-planning** folder for sprint planning reports and reviews.
+* Navigate to the [**sprints/sprint-planning**](https://github.com/dicarlosofia/ReuseU/tree/main/sprints/sprint-planning) folder for sprint planning reports and reviews.
 
 ---
  
@@ -24,6 +24,8 @@
  [Sprint Issues, Some pushed to sprint 4](https://github.com/dicarlosofia/ReuseU/milestone/5)
  ### --Sprint 4--
  [Sprint Issues](https://github.com/dicarlosofia/ReuseU/milestone/6)
+ ### --Sprint 5--
+ [Sprint Issues, Some pushed to sprint 5](https://github.com/dicarlosofia/ReuseU/milestone/7)
 
 ---
 ## Design
