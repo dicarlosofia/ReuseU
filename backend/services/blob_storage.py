@@ -15,9 +15,9 @@ from PIL import Image
 
 import boto3
 from botocore.client import Config
-import cv2
 import numpy as np
 
+#test
 
 def connect_to_blob_db_resource():
     # Get the absolute path to the credentials file
@@ -121,6 +121,35 @@ def upload_files_to_bucket(s3_resource, listing_id, data_bytes_list):
         uploaded_keys.append(key)
         name_counter += 1
     return uploaded_keys
+
+def upload_file_to_bucket_pfp(s3_resource, user_id, data_bytes):
+    bucket = s3_resource.Bucket("profile-pic")
+    pfp_indicator1 = "f%Tr^Lp&"
+    pfp_indicator2 = "*Gh&mB?y"
+    
+    # Convert base64 string to bytes if needed
+    if isinstance(data_bytes, str):
+        # Remove data URL prefix if present
+        if data_bytes.startswith('data:image'):
+            data_bytes = data_bytes.split(',')[1]
+        data_bytes = base64.b64decode(data_bytes)
+    
+    data_bytes = compress_image(data_bytes, 10)
+    key = pfp_indicator1 + str(user_id) + pfp_indicator2
+    bucket.put_object(Key=key, Body=data_bytes)
+    return key
+
+def get_pfp_from_bucket(s3_resource, user_id):
+    bucket = s3_resource.Bucket("profile-pic")
+    pfp_indicator1 = "f%Tr^Lp&"
+    pfp_indicator2 = "*Gh&mB?y"
+    key = f"{pfp_indicator1}{user_id}{pfp_indicator2}"
+
+    # Attempt to get the object
+    obj = bucket.Object(key)
+    response = obj.get()
+    body = response['Body'].read()
+    return body
 
 
 def get_images_from_bucket(s3_resource, listing_id):

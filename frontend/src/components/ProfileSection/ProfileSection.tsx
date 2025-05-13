@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { UserCircleIcon, StarIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect, ChangeEvent } from "react";
+
+import { UserCircleIcon, StarIcon, ChevronLeftIcon, ChevronRightIcon} from "@heroicons/react/24/outline";
 import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
 import { useGlobalContext } from "@/Context/GlobalContext";
@@ -7,6 +8,8 @@ import { accountsApi } from "@/pages/api/accounts";
 import { reviewsApi } from "@/pages/api/reviews";
 import { StarRating } from "../StarRating";
 import EditProfileModal from "./EditProfileModal";
+
+
 
 interface ProfileData {
   username: string;
@@ -25,17 +28,99 @@ const ProfileSection: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState<number>(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+    /* ──────────────────────────────────────────────────────────────
+     ✨ NEW: Photo‑carousel/Upload state & handlers
+     (inserted directly after the existing React state hooks)      
+  ────────────────────────────────────────────────────────────── */
+  const [photos, setPhotos] = useState<File[]>([]); // selected images (local only until saved)
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0); // for carousel navigation
+
+  // <input type="file" multiple /> change handler
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newPhotos = Array.from(e.target.files);
+      setPhotos(prev => [...prev, ...newPhotos]);
+    }
+  };
+
+  // remove current photo from preview array
+  const removePhoto = () => {
+    setPhotos(prev => prev.filter((_, i) => i !== currentPhotoIndex));
+    setCurrentPhotoIndex(prev => (prev > 0 ? prev - 1 : 0));
+  };
+
+  const nextPhoto = () => setCurrentPhotoIndex(prev => (prev + 1) % photos.length);
+  const prevPhoto = () => setCurrentPhotoIndex(prev => (prev - 1 + photos.length) % photos.length);
+
+  const saveCurrentPhoto = async () => {
+    if (!user || photos.length === 0) return;
+  
+    const accountId = user.uid;
+    const token     = await user.getIdToken();
+    const file      = photos[currentPhotoIndex];
+  
+    // ── NEW: read it as a base64 Data-URL ────────────────────────
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      // strip off the "data:*/*;base64," prefix
+      const dataUrl = reader.result as string;
+      const base64  = dataUrl.split(",")[1];
+  
+      try {
+        await accountsApi.updatePfp(accountId, base64, token);
+        setAvatarUrl(URL.createObjectURL(file));
+        alert("Profile picture updated!");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to update profile picture");
+      }
+    };
+  };
+  //test
+  /* ───────────────────────────── end photo handlers ──────────── */
+
+
+  useEffect(() => {
+    const fetchPfp = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const blob  = await accountsApi.getPfp(user.uid, token);
+        setAvatarUrl(URL.createObjectURL(blob));
+      } catch (err) {
+        console.debug("No remote PFP found or fetch failed:", err);
+      }
+    };
+    fetchPfp();
+  }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (account) {
+      if (!user) return;
+  
+      try {
+        const token = await user.getIdToken();
+        const data  = await accountsApi.getAccount(user.uid, token);
+  
+        // keep the local UI in sync
         setProfileData({
-          username: account.Username,
-          name: `${account.First_Name} ${account.Last_Name}`,
-          email: account.email || "",
-          pronouns: account.Pronouns || "",
-          aboutMe: account.AboutMe || "",
+          username:  data.Username,
+          name:      `${data.First_Name} ${data.Last_Name}`,
+          email:     data.email || "",
+          pronouns:  data.Pronouns || "",
+          aboutMe:   data.AboutMe || "",
         });
+  
+        /* OPTIONAL: if your context exposes a setter,
+           update it so the whole app stays in sync.
+           e.g., setAccount(data); */
+  
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
         return;
       }
@@ -61,9 +146,9 @@ const ProfileSection: React.FC = () => {
         }
       }
     };
-
+  
     fetchProfile();
-  }, [account, user]);
+  }, [user]);
 
   // Fetch reviews for this user (as seller)
   useEffect(() => {
@@ -192,14 +277,70 @@ const ProfileSection: React.FC = () => {
         {/* Profile Left */}
         <div className="col-span-full md:col-span-3 bg-white rounded-lg shadow-md p-6 border-t-4 border-lime-500">
           <div className="flex flex-col items-center gap-4">
+            {/* ─── NEW: photo preview w/ carousel ─── */}
             <div className="relative">
-              <div className="bg-lime-200 rounded-full p-2">
+            {/* OLD: only an icon if no local photos */}
+            {/* {photos.length === 0 ? ( */}
+            {/*   <UserCircleIcon className="w-32 h-32 text-lime-600" /> */}
+            {/* ) : ( */}
+
+            {photos.length === 0 ? (
+              avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="profile"
+                  className="w-32 h-32 rounded-full object-cover"
+                />
+              ) : (
                 <UserCircleIcon className="w-32 h-32 text-lime-600" />
-              </div>
-            </div>
+              )
+            ) : (
+              <>
+                <img
+                  src={URL.createObjectURL(photos[currentPhotoIndex])}
+                  alt="preview"
+                  className="w-32 h-32 rounded-full object-cover"
+                />
+                {photos.length > 1 && (
+                  <>
+                    <button onClick={prevPhoto} className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full bg-white/60 p-1 backdrop-blur">
+                      <ChevronLeftIcon className="h-4 w-4" />
+                    </button>
+                    <button onClick={nextPhoto} className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full bg-white/60 p-1 backdrop-blur">
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
             <span className="text-xl font-bold text-cyan-950">
               {profileData.username}
             </span>
+            {/* ─── NEW: uploader & actions ─── */}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoUpload}
+              className="file:rounded-md file:border file:bg-white file:px-2 file:py-1 file:text-sm file:hover:bg-gray-50"
+            />
+            {photos.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={saveCurrentPhoto}
+                  className="rounded-md bg-lime-500 px-3 py-1 text-sm text-white hover:bg-lime-700"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={removePhoto}
+                  className="rounded-md border border-red-400 px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 from typing import Dict, Any
 from .exceptions import NotFoundError, DatabaseError
+from . import blob_storage
 import re  # Import regex for domain extraction
 import logging # Import logging
 
@@ -194,6 +195,53 @@ class AccountService:
         except Exception as e:
             logger.error(f"Database error updating account {account_id}: {e}", exc_info=True)
             raise DatabaseError(f"Failed to update account: {e}")
+    
+
+    #add pfp tied to an account
+    def add_pfp(self, user_id: str, data_bytes: bytes) -> str:
+        try:
+            logger.debug(f"Starting add_pfp for user '{user_id}'")
+            # validate inputs
+            if not user_id:
+                raise DatabaseError("Missing required field: user_id")
+            if not data_bytes:
+                raise DatabaseError("Missing required field: data_bytes")
+
+            # connect to blob storage
+            s3 = blob_storage.connect_to_blob_db_resource()
+            logger.debug(f"Connected to blob storage for PFP upload (user_id: {user_id})")
+
+            # upload via existing helper
+            blob_key = blob_storage.upload_file_to_bucket_pfp(s3, user_id, data_bytes)
+            if not blob_key:
+                raise DatabaseError("Failed to upload profile picture to blob storage.")
+
+            logger.info(f"Successfully uploaded PFP for user '{user_id}', blob key: {blob_key}")
+            return blob_key
+
+        except DatabaseError as ve:
+            logger.error(f"Validation error in add_pfp for user '{user_id}': {ve}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Error in add_pfp for user '{user_id}': {e}", exc_info=True)
+            raise DatabaseError(f"Failed to add PFP for user '{user_id}': {e}")
+    
+    def get_pfp(self, user_id: str) -> bytes:
+        logger.debug(f"get_pfp called for user '{user_id}'")
+        if not user_id:
+            raise DatabaseError("Missing required field: user_id")
+        try:
+            s3 = blob_storage.connect_to_blob_db_resource()
+            img_bytes = blob_storage.get_pfp_from_bucket(s3, user_id)
+            if not img_bytes:
+                raise NotFoundError(f"No profile picture found for user {user_id}")
+            return img_bytes
+        except NotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Error retrieving PFP for '{user_id}': {e}", exc_info=True)
+            raise DatabaseError(f"Failed to retrieve PFP for user '{user_id}': {e}")
 
 # singletons
 account_service = AccountService()
@@ -201,3 +249,5 @@ add_account      = account_service.add_account
 get_acc          = account_service.get_acc
 delete_acc       = account_service.delete_acc
 update_acc       = account_service.update_acc # Expose the updated method
+add_pfp          = account_service.add_pfp
+get_pfp          = account_service.get_pfp

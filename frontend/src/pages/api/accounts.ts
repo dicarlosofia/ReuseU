@@ -91,4 +91,49 @@ export const accountsApi = {
     if (!response.ok) throw new Error("Failed to update account");
     return response.json();
   },
+
+  updatePfp: async (accountId: string, dataBytes: string, token?: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/${accountId}/pfp`,
+      {
+        method: 'PUT',
+        headers: getAuthHeaders(token),
+        body: JSON.stringify({ data_bytes: dataBytes }),
+      }
+    );
+  
+    if (!response.ok) throw new Error('Failed to update profile picture');
+    return response.json();
+  },
+
+  getPfp: async (accountId: string, token?: string): Promise<Blob> => {
+    const url = `${API_BASE_URL}/accounts/${accountId}/pfp`;
+    console.log("[accountsApi.getPfp] →", url);
+  
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        ...getAuthHeaders(token),
+        Accept: "application/octet-stream",
+      },
+    });
+  
+    console.log("[accountsApi.getPfp] ← status", response.status);
+  
+    if (!response.ok) {
+      // try to parse JSON error payload
+      let errBody: any;
+      try {
+        errBody = await response.json();
+        console.error("[accountsApi.getPfp] error body:", errBody);
+      } catch {
+        const text = await response.text();
+        console.error("[accountsApi.getPfp] non-JSON body:", text);
+      }
+      throw new Error(
+        errBody?.error || errBody?.message || `HTTP ${response.status}`
+      );
+    }
+  
+    return response.blob();
+  },
 };
