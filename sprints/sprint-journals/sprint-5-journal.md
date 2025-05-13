@@ -62,7 +62,7 @@ Add a section to your Sprint Journal describing what you did.
 --->
 * **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
 * **Timur**: 
-* **Howie**: 
+* **Howie**: I overhauled frontend, enhanced new components on Chats, Profile, and Listings, fixed authentication bugs and implemented filtering and WebSocket chats
 * **Trung**: I am tasked with deploying the website on Vercel and worked with Krishna on automated deployment. 
 * **Peter**: 
 * **Krishna**: Finished off automated testing, then finalized visual/artistic choices such as logo, mascot and icon.
