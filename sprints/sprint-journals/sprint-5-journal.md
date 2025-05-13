@@ -61,10 +61,10 @@ Add a section to your Sprint Journal describing what you did.
 
 --->
 * **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
-* **Timur**: 
+* **Timur**: I worked on the backend of reviews, which handled both the review functionality and the getting a star rating for a seller.
 * **Howie**: I overhauled frontend, enhanced new components on Chats, Profile, and Listings, fixed authentication bugs and implemented filtering and WebSocket chats
 * **Trung**: I am tasked with deploying the website on Vercel and worked with Krishna on automated deployment. 
-* **Peter**: 
+* **Peter**: I made the upload pfps feature from the ground up and added a corresponding bucket in R2 blob storage, and did some react code in profiles to added this to front-end. I connected the the open-ai price fill to frontend and implemented rate limiting.
 * **Krishna**: Finished off automated testing, then finalized visual/artistic choices such as logo, mascot and icon.
 
 ## (7) Blog Post
