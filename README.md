@@ -64,3 +64,7 @@ __Navigate to the app:__
 
 - Install _react, reavctdom, typescript_ templates with this command:
   - npm install react react-dom typescript @types/react @types/react-dom
+ 
+
+__Use of AI:__
+Note we use OpenAI for the price fill feature.
