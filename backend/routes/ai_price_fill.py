@@ -6,6 +6,7 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
+
 # matches the format in pages
 ai_price_fill_bp = Blueprint('ai_price_fill', __name__, url_prefix='/api/ai_price_fill')
 
