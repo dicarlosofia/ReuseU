@@ -115,5 +115,6 @@ def jwt_required(f):
             logger.error(f"Unexpected error during JWT verification or account fetch: {e}", exc_info=True)
             return jsonify({'message': 'Authentication error'}), 500
 
+
         return f(*args, **kwargs)
     return decorated
