@@ -65,7 +65,7 @@ Add a section to your Sprint Journal describing what you did.
 * **Howie**: 
 * **Trung**: I am tasked with deploying the website on Vercel and worked with Krishna on automated deployment. 
 * **Peter**: 
-* **Krishna**: 
+* **Krishna**: Finished off automated testing, then finalized visual/artistic choices such as logo, mascot and icon.
 
 ## (7) Blog Post
 <!--- PASTE THE BLOG POST BELOW: --->
