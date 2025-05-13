@@ -63,7 +63,7 @@ Add a section to your Sprint Journal describing what you did.
 * **Sofia**: I commented my code before I submitted it for review with my teammates, so I went through and refined the README.md file to have better navigation.
 * **Timur**: 
 * **Howie**: 
-* **Trung**: 
+* **Trung**: I am tasked with deploying the website on Vercel and worked with Krishna on automated deployment. 
 * **Peter**: 
 * **Krishna**: 
 
